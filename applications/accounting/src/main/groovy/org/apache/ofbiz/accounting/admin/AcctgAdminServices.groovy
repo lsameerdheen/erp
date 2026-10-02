@@ -1,0 +1,268 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+package org.apache.ofbiz.accounting.admin
+
+import java.math.RoundingMode
+import java.sql.Timestamp
+
+import org.apache.ofbiz.base.util.UtilDateTime
+import org.apache.ofbiz.base.util.UtilProperties
+import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.entity.condition.EntityConditionBuilder
+import org.apache.ofbiz.entity.util.EntityUtil
+import org.apache.ofbiz.service.ModelService
+
+import java.text.SimpleDateFormat
+
+Map createPartyAcctgPreference() {
+    //check that the party is an INTERNAL_ORGANIZATION, as defined in PartyRole
+    partyRole = select().from('PartyRole').where([partyId: parameters.partyId, roleTypeId: 'INTERNAL_ORGANIZATIO']).queryOne()
+    if (!partyRole) {
+        String errorMessage = UtilProperties.getMessage('AccountingUiLabels', 'AccountingPartyMustBeInternalOrganization', locale)
+        logError(errorMessage)
+        fail(errorMessage)
+    }
+    //Does not check if the Party is actually a company because real people have to pay taxes too
+
+    //TODO: maybe check to make sure that all fields are not null
+    create('PartyAcctgPreference', parameters)
+    return success()
+}
+
+Map getPartyAccountingPreferences() {
+    Map result = success()
+    GenericValue aggregatedPartyAcctgPref = delegator.makeValidValue('PartyAcctgPreference', parameters)
+    String currentOrganizationPartyId = parameters.organizationPartyId
+    Boolean containsEmptyFields = true
+
+    while (currentOrganizationPartyId && containsEmptyFields) {
+        GenericValue currentPartyAcctgPref = select().from('PartyAcctgPreference').where([partyId: currentOrganizationPartyId]).queryOne()
+        containsEmptyFields = false
+        if (currentPartyAcctgPref) {
+            for (String entityKey : currentPartyAcctgPref.keySet()) {
+                Object entityValue = currentPartyAcctgPref.get(entityKey)
+                if (entityValue) {
+                    aggregatedPartyAcctgPref.put(entityKey, entityValue)
+                } else {
+                    containsEmptyFields = true
+                }
+            }
+        } else {
+            containsEmptyFields = true
+        }
+        List<GenericValue> parentPartyRelationships = select().from('PartyRelationship')
+                .where([partyIdTo: currentOrganizationPartyId, partyRelationshipTypeId: 'GROUP_ROLLUP', roleTypeIdFrom: '_NA_',
+                        roleTypeIdTo: '_NA_'])
+                .filterByDate().queryList()
+        if (parentPartyRelationships) {
+            GenericValue parentPartyRelationship = EntityUtil.getFirst(parentPartyRelationships)
+            currentOrganizationPartyId = parentPartyRelationship.partyIdFrom
+        } else {
+            currentOrganizationPartyId = null
+        }
+    }
+
+    if (aggregatedPartyAcctgPref) {
+        aggregatedPartyAcctgPref.put('partyId', parameters.organizationPartyId)
+        result.put('partyAccountingPreference', aggregatedPartyAcctgPref)
+    }
+    return result
+}
+
+Map setAcctgCompany() {
+    Map result = success()
+    //Set user preference
+    GenericValue partyAcctgPreference = select().from('PartyAcctgPreference').where([partyId: parameters.organizationPartyId]).queryOne()
+    if (partyAcctgPreference) {
+        result = runService('setUserPreference',
+                [userPrefValue: parameters.organizationPartyId, userPrefGroupTypeId: 'GLOBAL_PREFERENCES', userPrefTypeId: 'ORGANIZATION_PARTY'])
+    }
+    result.put('organizationPartyId', parameters.organizationPartyId)
+
+    return result
+}
+
+Map updateFXConversion() {
+    //Set the FX rate changes as of now
+    Timestamp nowTimestamp = parameters.asOfTimestamp ?: UtilDateTime.nowTimestamp()
+
+    //find the existing exchange rates for this currency pair
+    exprBldr = new EntityConditionBuilder()
+    condition = exprBldr.AND {
+        EQUALS(uomId: parameters.uomId)
+        EQUALS(uomIdTo: parameters.uomIdTo)
+    }
+    if (parameters.purposeEnumId) {
+        condition = exprBldr.AND(condition) {
+            EQUALS(purposeEnumId: parameters.purposeEnumId)
+        }
+    }
+    List<GenericValue> uomConversions = select().from('UomConversionDated').where(condition).orderBy('-fromDate').filterByDate().queryList()
+
+    //expire all of them
+    for (GenericValue uomConversion : uomConversions) {
+        if (parameters.fromDate) {
+            uomConversion.put('thruDate', parameters.fromDate)
+        } else {
+            uomConversion.put('thruDate', nowTimestamp)
+        }
+    }
+    delegator.storeAll(uomConversions)
+
+    //now create a new conversion relationship
+    Map createParams = dispatcher.getDispatchContext().makeValidContext('createUomConversionDated', ModelService.IN_PARAM, parameters)
+    if (!parameters.fromDate) {
+        createParams.put('fromDate', nowTimestamp)
+    }
+    result = runService('createUomConversionDated', createParams)
+
+    return success()
+}
+
+Map getFXConversion() {
+    Map result = success()
+    Timestamp asOfTimestamp = parameters.asOfTimestamp ?: UtilDateTime.nowTimestamp()
+
+    //find the existing exchange rates
+    exprBldr = new EntityConditionBuilder()
+    thruDateCondition = exprBldr.OR {
+        EQUALS(thruDate: null)
+        GREATER_THAN_EQUAL_TO(thruDate: asOfTimestamp)
+    }
+    condition = exprBldr.AND(thruDateCondition) {
+        EQUALS(uomId: parameters.uomId)
+        EQUALS(uomIdTo: parameters.uomIdTo)
+        LESS_THAN_EQUAL_TO(fromDate: asOfTimestamp)
+    }
+    if (parameters.purposeEnumId) {
+        condition = exprBldr.AND(condition) {
+            EQUALS(purposeEnumId: parameters.purposeEnumId)
+        }
+    }
+    List<GenericValue> rates = select().from('UomConversionDated').where(condition).orderBy('-fromDate').filterByDate().queryList()
+
+    BigDecimal conversionRate = BigDecimal.ONE
+    int decimalScale = 2
+    if (rates) {
+        conversionFactor = EntityUtil.getFirst(rates).getBigDecimal('conversionFactor')
+        BigDecimal originalValue = BigDecimal.ONE
+        conversionRate = originalValue.divide(conversionFactor, decimalScale, RoundingMode.HALF_UP)
+    } else {
+        logWarning('Could not find conversion rate')
+    }
+    result.put('conversionRate', conversionRate)
+    return result
+}
+
+Map createFuturePeriod() {
+    applTypes = []
+    grain = null
+    intermediate = null
+    List parties = from('PartyAcctgPreference').where('enableAccounting', 'Y').queryList()
+    parties.each {
+        parameters.organizationPartyId = it.partyId
+        createCustomTimePeriod = from('SystemProperty')
+                .where('systemResourceId', 'general', 'systemPropertyId', 'CustomTimePeriod.create').queryOne()
+        if (createCustomTimePeriod?.systemPropertyValue == 'Y') {
+            // get list of CustomTypePeriod types
+            applTypes = from('SystemProperty')
+                    .where('systemResourceId', 'general', 'systemPropertyId', 'CustomTimePeriod.applType').queryOne()
+            List types = applTypes?.systemPropertyValue ? Arrays.asList(applTypes.systemPropertyValue.split('\\s*,\\s*')) : []
+            types.each { periodTypeId ->
+                Calendar periodCal = Calendar.getInstance()
+                systemPropertyId = 'CustomTimePeriod.' + periodTypeId + '.intermediate'
+                applTypeInter = from('SystemProperty')
+                        .where('systemResourceId', 'general', 'systemPropertyId', systemPropertyId).queryOne()
+                if (applTypeInter) {
+                    intermediate = applTypeInter.systemPropertyValue
+                }
+                // get grain for application type
+                systemPropertyId = 'CustomTimePeriod.' + periodTypeId + '.grain'
+                applTypeGrain = from('SystemProperty')
+                        .where('systemResourceId', 'general', 'systemPropertyId', systemPropertyId).queryOne()
+                if (applTypeGrain) {
+                    grain = applTypeGrain.systemPropertyValue
+                    if (grain == 'MONTH') {
+                        periodCal.add(Calendar.MONTH, 1)
+                        monthName = new SimpleDateFormat('MMM', locale).format(periodCal.getTime())
+                        year = periodCal.get(Calendar.YEAR)
+                        month = (periodCal.get(Calendar.MONTH) + 1).toString()
+                        if (month.length() == 1) {
+                            month = '0' + month
+                        }
+                        periodCal.set(Calendar.DATE, 1)
+                        periodStart = new java.sql.Date(periodCal.getTimeInMillis())
+                        periodStartDate = periodStart.toString() + ' 00:00:00.000'
+                        lastPeriodDay =  periodCal.getActualMaximum(Calendar.DAY_OF_MONTH)
+                        periodCal.set(Calendar.DATE, lastPeriodDay)
+                        periodEnd = new java.sql.Date(periodCal.getTimeInMillis())
+                        periodEndDate = periodEnd.toString() + ' 23:59:59.999'
+                        parameters.isClosed = 'N'
+                        // check whether the period for the year exists
+                        yearStartDate = Timestamp.valueOf(year + '-01-01 00:00:00.000')
+                        yearEndDate = Timestamp.valueOf(year + '-12-31 23:59:59.999')
+                        yearPeriodType = periodTypeId + '_YEAR'
+                        existingYear = from('CustomTimePeriod')
+                                .where('fromDate', yearStartDate, 'thruDate', yearEndDate, 'organizationPartyId', parameters.organizationPartyId,
+                                        'periodTypeId', yearPeriodType).queryFirst()
+                        if (existingYear) {
+                            parameters.parentPeriodId = existingYear.customTimePeriodId
+                        } else {
+                            parameters.fromDate = yearStartDate
+                            parameters.thruDate = yearEndDate
+                            parameters.periodTypeId = yearPeriodType
+                            parameters.periodNum = year + '00'
+                            parameters.periodName = year.toString()
+                            // persist the future period
+                            inMap = dispatcher.getDispatchContext().makeValidContext('createCustomTimePeriod', ModelService.IN_PARAM, parameters)
+                            serviceResult = run service: 'createCustomTimePeriod', with: inMap
+                            if (ServiceUtil.isSuccess(serviceResult)) {
+                                parameters.parentPeriodId = serviceResult.customTimePeriodId
+                            } else {
+                                return error(serviceResult.errorMessage)
+                            }
+                        }
+                        // check whether the future period exists
+                        parameters.customTimePeriodId = year + month
+                        parameters.periodNum = year + month
+                        parameters.periodName = (year + '-' + monthName).toUpperCase()
+                        fromDate = Timestamp.valueOf(periodStartDate)
+                        thruDate = Timestamp.valueOf(periodEndDate)
+                        parameters.periodTypeId = periodTypeId + '_' + grain
+                        existingPeriod = from('CustomTimePeriod')
+                                .where('fromDate', fromDate, 'thruDate', thruDate, 'organizationPartyId', parameters.organizationPartyId,
+                                        'periodTypeId', parameters.periodTypeId).queryFirst()
+                        if (!existingPeriod) {
+                            parameters.fromDate = periodStartDate
+                            parameters.thruDate = periodEndDate
+                            // persist the future period
+                            inMap = dispatcher.getDispatchContext().makeValidContext('createCustomTimePeriod', ModelService.IN_PARAM, parameters)
+                            serviceResult = run service: 'createCustomTimePeriod', with: inMap
+                            if (!ServiceUtil.isSuccess(serviceResult)) {
+                                return error(serviceResult.errorMessage)
+                            }
+                        }
+                        parameters.parentPeriodId = ''
+                    }
+                }
+            }
+        }
+    }
+    return success()
+}

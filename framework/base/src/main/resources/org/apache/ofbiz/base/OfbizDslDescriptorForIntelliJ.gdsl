@@ -1,0 +1,80 @@
+/*******************************************************************************
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *******************************************************************************/
+package org.apache.ofbiz.base
+
+def groovyContext = context(filetypes: ['groovy'], scope: scriptScope())
+
+contributor(groovyContext) {
+    provider = 'OFBiz DSL'
+    property name: 'parameters', type: 'java.util.Map'
+    property name: 'context', type: 'java.util.Map'
+    property name: 'delegator', type: 'org.apache.ofbiz.entity.Delegator'
+    property name: 'dispatcher', type: 'org.apache.ofbiz.service.LocalDispatcher'
+    property name: 'security', type: 'org.apache.ofbiz.security.Security'
+
+    method name: 'runService', type: 'java.util.Map', params: [serviceName: 'String', inputMap: 'java.util.Map']
+    method name: 'runAsyncService', type: 'void', params: [serviceName: 'String', inputMap: 'java.util.Map']
+    method name: 'run', type: 'java.util.Map', params: [args: 'java.util.Map']
+    method name: 'runAsync', type: 'void', params: [args: 'java.util.Map']
+
+    method name: 'makeValue', type: 'org.apache.ofbiz.entity.GenericValue', params: [entityName: 'String']
+    method name: 'makeValue', type: 'org.apache.ofbiz.entity.GenericValue', params: [entityName: 'String', inputMap: 'java.util.Map']
+    method name: 'from', type: 'org.apache.ofbiz.entity.util.EntityQuery', params: [entityName: 'String']
+    method name: 'from', type: 'org.apache.ofbiz.entity.util.EntityQuery', params: [dynamicViewEntity: 'org.apache.ofbiz.entity.model.DynamicViewEntity']
+    method name: 'select', type: 'org.apache.ofbiz.entity.util.EntityQuery', params: [fields: 'String...']
+    method name: 'select', type: 'org.apache.ofbiz.entity.util.EntityQuery', params: [fields: 'java.util.Set<String>']
+
+    method name: 'create', type: 'org.apache.ofbiz.entity.GenericValue', params: [entityName: 'String', fields: 'java.util.Map']
+    method name: 'update', type: 'org.apache.ofbiz.service.engine.EntityUpdateBuilder', params: [entityName: 'String']
+    method name: 'delete', type: 'org.apache.ofbiz.service.engine.EntityDeleteBuilder', params: [entityName: 'String']
+
+    method name: 'success', type: 'java.util.Map'
+    method name: 'success', type: 'java.util.Map', params: [message: 'String']
+    method name: 'success', type: 'java.util.Map', params: [returnValues: 'java.util.Map']
+    method name: 'success', type: 'java.util.Map', params: [message: 'String', returnValues: 'java.util.Map']
+    method name: 'success', type: 'java.util.Map', params: [resource: 'String', key: 'String']
+    method name: 'success', type: 'java.util.Map', params: [resource: 'String', key: 'String',
+                                                            context: 'java.util.Map', returnValues: 'java.util.Map']
+
+    method name: 'failure', type: 'java.util.Map', params: [message: 'String']
+    method name: 'failure', type: 'java.util.Map', params: [message: 'String', returnValues: 'java.util.Map']
+    method name: 'failure', type: 'java.util.Map', params: [resource: 'String', key: 'String', returnValues: 'java.util.Map']
+
+    method name: 'error', type: 'java.util.Map', params: [message: 'String']
+    method name: 'error', type: 'java.util.Map', params: [resource: 'String', key: 'String']
+    method name: 'error', type: 'java.util.Map', params: [resource: 'String', key: 'String', context: 'java.util.Map']
+
+    method name: 'logVerbose', type: 'void', params: [message: 'String']
+    method name: 'logInfo', type: 'void', params: [message: 'String']
+    method name: 'logWarning', type: 'void', params: [message: 'String']
+    method name: 'logError', type: 'void', params: [message: 'String']
+    method name: 'logError', type: 'void', params: [t: 'java.lang.Throwable']
+    method name: 'logError', type: 'void', params: [t: 'java.lang.Throwable', message: 'String']
+
+    method name: 'label', type: 'String', params: [ressource: 'String', message: 'String']
+    method name: 'label', type: 'String', params: [ressource: 'String', message: 'String', context: 'java.util.Map']
+
+    method name: 'fail', type: 'void', params: [message: 'String']
+    method name: 'fail', type: 'void', params: [resource: 'String', key: 'String']
+    method name: 'fail', type: 'void', params: [resource: 'String', key: 'String', context: 'java.util.Map']
+
+    method name: 'require', type: 'void', params: [condition: 'boolean', message: 'String']
+    method name: 'require', type: 'void', params: [condition: 'boolean', resource: 'String', key: 'String']
+    method name: 'require', type: 'void', params: [condition: 'boolean', resource: 'String', key: 'String', context: 'java.util.Map']
+}

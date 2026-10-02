@@ -1,0 +1,643 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<simple-methods xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://ofbiz.apache.org/Simple-Method" xsi:schemaLocation="http://ofbiz.apache.org/Simple-Method http://ofbiz.apache.org/dtds/simple-methods.xsd">
+
+    <!-- communication event workeffort -->
+    <simple-method method-name="makeCommunicationEventWorkEffort" short-description="Make a Communication Event WorkEffort">
+        <make-value entity-name="CommunicationEventWorkEff" value-field="lookupMap"/>
+        <set-pk-fields map="parameters" value-field="lookupMap"/>
+        <find-by-primary-key entity-name="CommunicationEventWorkEff" map="lookupMap" value-field="eventWe"/>
+        <if-not-empty field="eventWe.workEffortId">
+            <set-nonpk-fields map="parameters" value-field="eventWe"/>
+            <set field="eventWe.description" from-field="parameters.relationDescription"/>
+            <store-value value-field="eventWe"/>
+        </if-not-empty>
+        <if-empty field="eventWe.workEffortId">
+            <set-nonpk-fields map="parameters" value-field="lookupMap"/>
+            <set field="eventWe.description" from-field="parameters.relationDescription"/>
+            <create-value value-field="lookupMap"/>
+        </if-empty>
+        <field-to-result field="lookupMap.workEffortId" result-name="workEffortId"/>
+        <field-to-result field="lookupMap.communicationEventId" result-name="communicationEventId"/>
+    </simple-method>
+
+    <simple-method method-name="updateCommunicationEventWorkEff" short-description="Update a CommunicationEventWorkEff">
+        <!-- Find old value -->
+        <make-value entity-name="CommunicationEventWorkEff" value-field="communicationEventWorkEff"/>
+        <set-pk-fields value-field="communicationEventWorkEff" map="parameters"/>
+        <find-by-primary-key entity-name="CommunicationEventWorkEff" map="communicationEventWorkEff" value-field="communicationEventWorkEff"/>
+        <if-empty field="communicationEventWorkEff">
+            <add-error>
+                <fail-property resource="WorkEffortUiLabels" property="WorkEffortCannotUpdateContactInfo"/>
+            </add-error>
+        </if-empty>
+        <check-errors/>
+        <set-nonpk-fields map="parameters" value-field="communicationEventWorkEff"/>
+        <store-value value-field="communicationEventWorkEff"/>
+    </simple-method>
+
+    <simple-method method-name="deleteCommunicationEventWorkEff" short-description="Delete a CommunicationEventWorkEff">
+        <!-- Find old value -->
+        <make-value entity-name="CommunicationEventWorkEff" value-field="communicationEventWorkEff"/>
+        <set-pk-fields value-field="communicationEventWorkEff" map="parameters"/>
+        <find-by-primary-key entity-name="CommunicationEventWorkEff" map="communicationEventWorkEff" value-field="communicationEventWorkEff"/>
+        <if-empty field="communicationEventWorkEff">
+            <add-error>
+                <fail-property resource="WorkEffortUiLabels" property="WorkEffortCannotDeleteContactInfo"/>
+            </add-error>
+        </if-empty>
+        <check-errors/>
+        <remove-value value-field="communicationEventWorkEff"/>
+    </simple-method>
+
+    <simple-method method-name="createWorkEffortNote" short-description="Create Work Effort Note">
+        <make-value entity-name="NoteData" value-field="newEntity"/>
+        <sequenced-id sequence-name="NoteData" field="newEntity.noteId"/>
+        <field-to-result field="newEntity.noteId" result-name="noteId"/>
+        <set from-field="parameters.noteInfo" field="newEntity.noteInfo"/>
+        <if-not-empty field="parameters.noteParty">
+           <set from-field="parameters.noteParty" field="newEntity.noteParty"/>
+        <else>
+            <set field="newEntity.noteParty" from-field="parameters.userLogin.partyId"></set>
+        </else>
+        </if-not-empty>
+        <set from-field="parameters.noteName" field="newEntity.noteName"/>
+        <now-timestamp field="newEntity.noteDateTime"/>
+        <create-value value-field="newEntity"/>
+
+        <!-- create new status entry, and set lastStatusUpdate date -->
+        <make-value entity-name="WorkEffortNote" value-field="newWorkEffortNote"/>
+        <set from-field="newEntity.noteId" field="newWorkEffortNote.noteId"/>
+        <set from-field="parameters.workEffortId" field="newWorkEffortNote.workEffortId"/>
+        <set from-field="parameters.internalNote" field="newWorkEffortNote.internalNote"/>
+        <create-value value-field="newWorkEffortNote"/>
+    </simple-method>
+    <simple-method method-name="updateWorkEffortNote" short-description="Update Work Effort Note">
+        <entity-one entity-name="WorkEffortNote" value-field="lookedUpValue"/>
+        <entity-one entity-name="NoteData" value-field="lookedUpValueForNoteData"/>
+        <set-nonpk-fields map="parameters" value-field="lookedUpValueForNoteData"/>
+        <set-nonpk-fields map="parameters" value-field="lookedUpValue"/>
+        <store-value value-field="lookedUpValue"/>
+        <store-value value-field="lookedUpValueForNoteData"/>
+    </simple-method>
+    <simple-method method-name="createWorkEffortAndAssoc" short-description="Create a WorkEffort and association">
+        <if-empty field="parameters.fromDate">
+            <now-timestamp field="parameters.fromDate"/>
+        <else>
+            <entity-one entity-name="WorkEffortAssoc" value-field="lookedUpValue"/>
+        </else>
+        </if-empty>
+        <if-not-empty field="lookedUpValue">
+            <add-error>
+                <fail-property resource="WorkEffortUiLabels" property="WorkEffortWorkEffortAssocIdAlreadyExist"/>
+            </add-error>
+            <check-errors/>
+        <else>
+            <if-empty field="parameters.workEffortIdTo">
+                <set-service-fields service-name="createWorkEffort" map="parameters" to-map="createWorkeEffortParams"/>
+                <call-service in-map-name="createWorkeEffortParams" service-name="createWorkEffort">
+                    <result-to-result result-name="workEffortId"/>
+                    <result-to-field result-name="workEffortId" field="workEffortIdTo"/>
+                </call-service>
+                <set field="parameters.workEffortIdTo" from-field="workEffortIdTo"/>
+            </if-empty>
+            <set-service-fields service-name="createWorkEffortAssoc"  map="parameters" to-map="createWorkEffortAssocParams"/>
+            <call-service in-map-name="createWorkEffortAssocParams" service-name="createWorkEffortAssoc"/>
+            <field-to-result field="createWorkEffortAssocParams.workEffortIdFrom" result-name="workEffortIdFrom"/>
+            <field-to-result field="createWorkEffortAssocParams.workEffortAssocTypeId" result-name="workEffortAssocTypeId"/>
+        </else>
+        </if-not-empty>
+    </simple-method>
+
+    <simple-method method-name="createWorkEffortAssoc" short-description="Create a WorkEffort association">
+        <if-empty field="parameters.fromDate">
+            <now-timestamp field="parameters.fromDate"/>
+        <else>
+            <entity-one entity-name="WorkEffortAssoc" value-field="lookedUpValue"/>
+        </else>
+        </if-empty>
+
+        <if-not-empty field="lookedUpValue">
+            <add-error>
+                <fail-property resource="WorkEffortUiLabels" property="WorkEffortWorkEffortAssocIdAlreadyExist"/>
+            </add-error>
+            <check-errors/>
+        <else>
+            <make-value entity-name="WorkEffortAssoc" value-field="newEntity"/>
+            <set-pk-fields map="parameters" value-field="newEntity"/>
+            <set-nonpk-fields map="parameters" value-field="newEntity"/>
+            <if-empty field="newEntity.sequenceNum">
+                <set field="newEntity.sequenceNum" value="0" type="Long"/>
+            </if-empty>
+            <create-value value-field="newEntity"/>
+        </else>
+        </if-not-empty>
+    </simple-method>
+
+    <simple-method method-name="copyWorkEffortAssocs" short-description="Copy WorkEffort associations">
+        <set field="deepCopy" from-field="parameters.deepCopy" default-value="N" />
+        <set field="excludeExpiredAssocs" from-field="parameters.excludeExpiredAssocs" default-value="N" />
+        <entity-and entity-name="WorkEffortAssoc" list="workEffortAssocs">
+            <field-map field-name="workEffortIdFrom" from-field="parameters.sourceWorkEffortId" />
+        </entity-and>
+        <if-compare field="excludeExpiredAssocs" operator="equals" value="Y">
+            <filter-list-by-date list="workEffortAssocs" />
+        </if-compare>
+        <iterate list="workEffortAssocs" entry="workEffortAssoc">
+            <set field="workEffortIdTo" from-field="workEffortAssoc.workEffortIdTo" />
+            <if-compare field="deepCopy" operator="equals" value="Y">
+                <clear-field field="copyWorkEffortCtx" />
+                <set-service-fields service-name="copyWorkEffort" map="parameters" to-map="copyWorkEffortCtx"/>
+                <clear-field field="copyWorkEffortCtx.targetWorkEffortId"/>
+                <set field="copyWorkEffortCtx.sourceWorkEffortId" from-field="workEffortIdTo" />
+                <set field="copyWorkEffortCtx.copyWorkEffortAssocs" value="Y" />
+                <call-service service-name="copyWorkEffort" in-map-name="copyWorkEffortCtx">
+                    <result-to-field result-name="workEffortId" field="workEffortIdTo" />
+                </call-service>
+                <check-errors />
+            </if-compare>
+            <clone-value value-field="workEffortAssoc" new-value-field="newWorkEffortAssoc" />
+            <set field="newWorkEffortAssoc.workEffortIdFrom" from-field="parameters.targetWorkEffortId" />
+            <set field="newWorkEffortAssoc.workEffortIdTo" from-field="workEffortIdTo" />
+            <create-value value-field="newWorkEffortAssoc" />
+        </iterate>
+    </simple-method>
+
+    <simple-method method-name="assignInventoryToWorkEffort" short-description="Create or update WorkEffortInventoryAssign">
+        <set value="Create or update WorkEffortInventoryAssign" field="operationName"/>
+
+        <entity-one entity-name="WorkEffortInventoryAssign" value-field="foundEntity"/>
+        <if-not-empty field="foundEntity">
+            <calculate field="foundEntity.quantity" type="Double">
+                <calcop operator="get" field="foundEntity.quantity"/>
+                <calcop operator="get" field="parameters.quantity"/>
+            </calculate>
+            <store-value value-field="foundEntity"/>
+        <else>
+            <make-value entity-name="WorkEffortInventoryAssign" value-field="newEntity"/>
+            <set-pk-fields map="parameters" value-field="newEntity"/>
+            <set-nonpk-fields map="parameters" value-field="newEntity"/>
+            <create-value value-field="newEntity"/>
+        </else>
+        </if-not-empty>
+    </simple-method>
+
+    <!-- CustRequestItem workeffort -->
+    <simple-method method-name="checkCustRequestItemExists" short-description="Checks to see if a CustRequestItem exists">
+        <make-value entity-name="CustRequestItem" value-field="lookupMap"/>
+        <set-pk-fields map="parameters" value-field="lookupMap"/>
+        <find-by-primary-key entity-name="CustRequestItem" map="lookupMap" value-field="custRequestItem"/>
+        <if-not-empty field="custRequestItem">
+            <set field="custRequestItemExists" value="true"/>
+            <field-to-result field="custRequestItemExists"/>
+            <log level="info" message="custRequestItemExists: ${custRequestItemExists}"/>
+            <else>
+                <log level="info" message="custRequestItemExists: empty"/>
+            </else>
+        </if-not-empty>
+    </simple-method>
+
+    <simple-method method-name="setWorkEffortFixedAssetAssign" short-description="Based on task's estimate dates, write assign entries for the fixed asset the task is assigned to">
+        <entity-one entity-name="WorkEffort" value-field="workEffort"/>
+        <set from-field="workEffort.workEffortId" field="findMap.workEffortId"/>
+        <set from-field="workEffort.fixedAssetId" field="findMap.fixedAssetId"/>
+        <find-by-and entity-name="WorkEffortFixedAssetAssign" map="findMap" list="existingAssignments"/>
+        <filter-list-by-date list="existingAssignments"/>
+        <iterate list="existingAssignments" entry="existingAssignment">
+            <remove-value value-field="existingAssignment"/>
+        </iterate>
+        <make-value entity-name="WorkEffortFixedAssetAssign" value-field="newEntity"/>
+        <set from-field="workEffort.workEffortId" field="newEntity.workEffortId"/>
+        <set from-field="workEffort.fixedAssetId" field="newEntity.fixedAssetId"/>
+        <set from-field="workEffort.currentStatusId" field="newEntity.statusId"/>
+        <set from-field="workEffort.estimatedStartDate" field="newEntity.fromDate"/>
+        <set from-field="workEffort.estimatedCompletionDate" field="newEntity.thruDate"/>
+        <create-value value-field="newEntity"/>
+    </simple-method>
+    <simple-method method-name="createWorkEffortFixedAssetAssign"
+            short-description="Create a WorkEffort FixedAsset Assign">
+        <entity-one entity-name="WorkEffortFixedAssetAssign" value-field="lookedUpValue"/>
+        <if-not-empty field="lookedUpValue">
+            <add-error>
+                <fail-property resource="WorkEffortUiLabels" property="WorkEffortFixedAssetAlreadyExist"/>
+            </add-error>
+        <else>
+            <make-value entity-name="WorkEffortFixedAssetAssign" value-field="newWEFixedAssetAssign"/>
+            <set-pk-fields map="parameters" value-field="newWEFixedAssetAssign"/>
+            <set-nonpk-fields map="parameters" value-field="newWEFixedAssetAssign"/>
+            <!-- if the user hasn't specified a fromDate, set it from the actual start date of the task
+                if there is no actual start date, default to now (to the current date and time) -->
+            <if-empty field="parameters.fromDate">
+                <entity-one entity-name="WorkEffort" value-field="prodRunTask"/>
+                <now-timestamp field="newWEFixedAssetAssign.fromDate"/>
+                <if-not-empty field="prodRunTask.estimatedStartDate">
+                    <set field="newWEFixedAssetAssign.fromDate" from-field="prodRunTask.estimatedStartDate"/>
+                </if-not-empty>
+                <if-not-empty field="prodRunTask.actualStartDate">
+                    <set field="newWEFixedAssetAssign.fromDate" from-field="prodRunTask.actualStartDate"/>
+                </if-not-empty>
+            </if-empty>
+            <create-value value-field="newWEFixedAssetAssign"/>
+        </else>
+        </if-not-empty>
+    </simple-method>
+    <!-- Create/Update/Delete Work Effort Review-->
+    <simple-method method-name="createWorkEffortReview" short-description="Create Work Effort Review">
+        <entity-one entity-name="WorkEffortReview" value-field="lookedUpValue"/>
+        <if-not-empty field="lookedUpValue">
+            <add-error>
+                <fail-property resource="WorkEffortUiLabels" property="WorkEffortWorkEffortReviewAlreadyExist"/>
+            </add-error>
+            <check-errors/>
+        <else>
+            <make-value entity-name="WorkEffortReview" value-field="newEntity"/>
+            <set-nonpk-fields map="parameters" value-field="newEntity"/>
+            <set-pk-fields map="parameters" value-field="newEntity"/>
+
+            <if-empty field="newEntity.userLoginId">
+                <set field="newEntity.userLoginId" from-field="parameters.userLogin.userLoginId"/>
+            </if-empty>
+            <if-empty field="newEntity.reviewDate">
+                <now-timestamp field="nowTimestamp"/>
+                <set field="newEntity.reviewDate" from-field="nowTimestamp"/>
+            </if-empty>
+            <create-value value-field="newEntity"/>
+        </else>
+        </if-not-empty>
+    </simple-method>
+
+    <simple-method method-name="indexWorkEffortKeywords" short-description="Index the Keywords for a WorkEffort" login-required="false">
+        <!-- this service is meant to be called from an entity ECA for entities that include a workEffortId
+             if it is the WorkEffort entity itself triggering this action, then a worokEffort parameter
+             will be passed and we can save a few cycles looking that up -->
+        <set from-field="parameters.workEffort" field="workEffort"/>
+        <if-empty field="workEffort">
+            <set from-field="parameters.workEffortId" field="findWorkEffortMap.workEffortId"/>
+            <find-by-primary-key entity-name="WorkEffort" map="findWorkEffortMap" value-field="workEffort"/>
+        </if-empty>
+        <check-errors />
+        <!-- index keywords -->
+        <call-class-method class-name="org.apache.ofbiz.workeffort.workeffort.WorkEffortKeywordIndex" method-name="indexKeywords">
+            <field field="workEffort" type="org.apache.ofbiz.entity.GenericValue"/>
+        </call-class-method>
+    </simple-method>
+
+    <simple-method method-name="createWorkEffortKeyword" short-description="Create Work Effort Keyword">
+        <entity-one entity-name="WorkEffortKeyword" value-field="lookedUpValue"/>
+        <if-not-empty field="lookedUpValue">
+            <add-error>
+                <fail-property resource="WorkEffortUiLabels" property="WorkEffortKeywordAlreadyExist"/>
+            </add-error>
+        <else>
+        <make-value entity-name="WorkEffortKeyword" value-field="newEntity"/>
+        <if-empty field="parameters.workEffortId">
+            <add-error>
+                <fail-property resource="WorkEffortUiLabels" property="WorkEffortIdMissing"/>
+            </add-error>
+        </if-empty>
+        <if-empty field="parameters.keyword">
+            <add-error>
+                <fail-property resource="ProductUiLabels" property="productevents.keyword_missing"/>
+            </add-error>
+        </if-empty>
+        <check-errors/>
+        <set-pk-fields value-field="newEntity" map="parameters"></set-pk-fields>
+        <set-nonpk-fields map="parameters" value-field="newEntity"/>
+        <create-value value-field="newEntity"/>
+         </else>
+       </if-not-empty>
+       <check-errors/>
+    </simple-method>
+    <simple-method method-name="createWorkEffortKeywords" short-description="Create all Work Effort Keyword">
+        <set from-field="parameters.workEffortId" field="findWorkEffortMap.workEffortId"/>
+        <find-by-primary-key entity-name="WorkEffort" map="findWorkEffortMap" value-field="workEffortInstance"/>
+        <call-class-method class-name="org.apache.ofbiz.workeffort.workeffort.WorkEffortKeywordIndex" method-name="indexKeywords">
+            <field field="workEffortInstance" type="org.apache.ofbiz.entity.GenericValue"/>
+        </call-class-method>
+    </simple-method>
+
+    <simple-method method-name="deleteWorkEffortKeywords"
+            short-description="Remove all WorkEffort Keyword">
+        <set from-field="parameters.workEffortId" field="findWorkEffortMap.workEffortId"/>
+        <find-by-primary-key entity-name="WorkEffort" map="findWorkEffortMap" value-field="workEffortInstance"/>
+        <if-not-empty field="workEffortInstance.workEffortId">
+        <remove-related relation-name="WorkEffortKeyword" value-field="workEffortInstance"/>
+        </if-not-empty>
+        <check-errors/>
+    </simple-method>
+
+    <!-- WorkEffort ServiceTest Services -->
+    <simple-method method-name="testCreateEventService" short-description="test to create new event (workeffort) service" login-required="false">
+        <log level="info" message="====================Create an event test case=========================================="/>
+        <set field="createEventMap.workEffortTypeId" value="EVENT"/>
+        <set field="createEventMap.quickAssignPartyId" value="DemoCustomer"/>
+        <set field="createEventMap.workEffortName" value="Create Work Effort"/>
+        <set field="createEventMap.currentStatusId" value="CAL_TENTATIVE"/>
+        <entity-one entity-name="UserLogin" value-field="createEventMap.userLogin">
+            <field-map field-name="userLoginId" value="system"/>
+        </entity-one>
+        <call-service service-name="createWorkEffort" in-map-name="createEventMap">
+            <result-to-field result-name="workEffortId" field="eventMap.workEffortId"/>
+        </call-service>
+        <call-simple-method method-name="testUpdateEventService"/>
+        <entity-one entity-name="WorkEffort" value-field="workEffort">
+            <field-map field-name="workEffortId" from-field="eventMap.workEffortId"/>
+        </entity-one>
+        <assert>
+            <not><if-empty field="workEffort"/></not>
+            <if-compare-field field="workEffort.workEffortId" to-field="eventMap.workEffortId" operator="equals"/>
+            <if-compare-field field="workEffort.workEffortTypeId" to-field="updateEventMap.workEffortTypeId" operator="equals"/>
+            <if-compare-field field="workEffort.workEffortName" to-field="updateEventMap.workEffortName" operator="equals"/>
+            <if-compare-field field="workEffort.currentStatusId" to-field="updateEventMap.currentStatusId" operator="equals"/>
+        </assert>
+        <check-errors/>
+    </simple-method>
+    <simple-method method-name="testUpdateEventService" short-description="test to update an event(workeffort) service" login-required="false">
+        <log level="info" message="====================Update an event test case=========================================="/>
+        <set field="updateEventMap.workEffortId" from-field="eventMap.workEffortId"/>
+        <set field="updateEventMap.workEffortTypeId" value="EVENT"/>
+        <set field="updateEventMap.workEffortName" value="Update an event"/>
+        <set field="updateEventMap.currentStatusId" value="CAL_ACCEPTED"/>
+        <entity-one entity-name="UserLogin" value-field="updateEventMap.userLogin">
+            <field-map field-name="userLoginId" value="system"/>
+        </entity-one>
+        <call-service service-name="updateWorkEffort" in-map-name="updateEventMap"/>
+        <check-errors/>
+    </simple-method>
+    <simple-method method-name="testCreateProjectService" short-description="test to create new project(workeffort) service" login-required="false">
+        <log level="info" message="====================Create a new project test case=========================================="/>
+        <set field="createProjectMap.workEffortTypeId" value="PROJECT"/>
+        <set field="createProjectMap.quickAssignPartyId" value="DemoCustomer"/>
+        <set field="createProjectMap.workEffortName" value="Create a project"/>
+        <set field="createProjectMap.currentStatusId" value="CAL_TENTATIVE"/>
+        <entity-one entity-name="UserLogin" value-field="createProjectMap.userLogin">
+            <field-map field-name="userLoginId" value="system"/>
+        </entity-one>
+        <call-service service-name="createWorkEffort" in-map-name="createProjectMap">
+            <result-to-field result-name="workEffortId" field="projectMap.workEffortId"/>
+        </call-service>
+        <call-simple-method method-name="testUpdateProjectService"/>
+        <call-simple-method method-name="testCreateWorkEffortNoteService"/>
+        <entity-one entity-name="WorkEffort" value-field="workEffort">
+            <field-map field-name="workEffortId" from-field="projectMap.workEffortId"/>
+        </entity-one>
+        <entity-one entity-name="NoteData" value-field="noteData">
+            <field-map field-name="noteId" from-field="workEffortNoteMap.noteId"/>
+        </entity-one>
+        <assert>
+            <not><if-empty field="workEffort"/></not>
+            <if-compare-field field="workEffort.workEffortId" to-field="projectMap.workEffortId" operator="equals"/>
+            <if-compare-field field="workEffort.workEffortTypeId" to-field="updateProjectMap.workEffortTypeId" operator="equals"/>
+            <if-compare-field field="workEffort.workEffortName" to-field="updateProjectMap.workEffortName" operator="equals"/>
+            <if-compare-field field="workEffort.currentStatusId" to-field="updateProjectMap.currentStatusId" operator="equals"/>
+        </assert>
+        <assert>
+            <not><if-empty field="noteData"/></not>
+            <if-compare-field field="noteData.noteParty" to-field="createWorkEffortNoteMap.noteParty" operator="equals"/>
+            <if-compare-field field="noteData.noteInfo" to-field="createWorkEffortNoteMap.noteInfo" operator="equals"/>
+        </assert>
+        <check-errors/>
+    </simple-method>
+    <simple-method method-name="testUpdateProjectService" short-description="test to update an project(workeffort) service" login-required="false">
+        <log level="info" message="====================Update a project test case=========================================="/>
+        <set field="updateProjectMap.workEffortId" from-field="projectMap.workEffortId"/>
+        <set field="updateProjectMap.workEffortTypeId" value="PROJECT"/>
+        <set field="updateProjectMap.workEffortName" value="Update a project"/>
+        <set field="updateProjectMap.currentStatusId" value="CAL_ACCEPTED"/>
+        <entity-one entity-name="UserLogin" value-field="updateProjectMap.userLogin">
+            <field-map field-name="userLoginId" value="system"/>
+        </entity-one>
+        <call-service service-name="updateWorkEffort" in-map-name="updateProjectMap"/>
+        <check-errors/>
+    </simple-method>
+    <simple-method method-name="testCreateWorkEffortNoteService" short-description="test to create new workeffort note service" login-required="false">
+        <log level="info" message="====================Create a work effort note test case=========================================="/>
+        <set field="createWorkEffortNoteMap.workEffortId" from-field="projectMap.workEffortId"/>
+        <set field="createWorkEffortNoteMap.noteParty" value="DemoCustomer"/>
+        <set field="createWorkEffortNoteMap.noteInfo" value="This is a note for party 'DemoCustomer'"/>
+        <entity-one entity-name="UserLogin" value-field="createWorkEffortNoteMap.userLogin">
+            <field-map field-name="userLoginId" value="system"/>
+        </entity-one>
+        <call-service service-name="createWorkEffortNote" in-map-name="createWorkEffortNoteMap">
+            <result-to-field result-name="noteId" field="workEffortNoteMap.noteId"/>
+        </call-service>
+        <check-errors/>
+    </simple-method>
+
+    <simple-method method-name="getHours"
+        short-description="get the planned and estimated hours for a task and add to the highInfo map">
+
+        <!-- input is 'lowInfo' map output is 'highInfo map -->
+        <!-- hoursPartyId: if provided only the hours of that party -->
+        <!-- add the planned hours together -->
+        <get-related value-field="lowInfo" relation-name="WorkEffortSkillStandard" list="estimates"/>
+        <if-not-empty field="estimates">
+            <iterate list="estimates" entry="estimate">
+                <if-not-empty field="estimate.estimatedDuration">
+                    <if-not-empty field="highInfo.plannedHours">
+                        <calculate field="highInfo.plannedHours" type="Double">
+                            <calcop operator="add" field="estimate.estimatedDuration">
+                                <calcop operator="get" field="highInfo.plannedHours"/>
+                            </calcop>
+                        </calculate>
+                        <else>
+                            <set field="highInfo.plannedHours" from-field="estimate.estimatedDuration" type="Double"/>
+                        </else>
+                    </if-not-empty>
+                </if-not-empty>
+            </iterate>
+        </if-not-empty>
+        <!-- get the actual billed / non billed hours -->
+        <get-related value-field="lowInfo" relation-name="TimeEntry" list="actuals"/>
+        <if-not-empty field="actuals">
+            <iterate list="actuals" entry="actual">
+                <if-not-empty field="actual.hours">
+                    <get-related-one value-field="actual" relation-name="Timesheet" to-value-field="timesheet"/>
+
+                    <!-- check if only a part of the registered hours need to be taken into account -->
+                    <set field="originalActualHours" from-field="actual.hours" type="Double"/>
+                    <entity-condition entity-name="PartyRate" list="partyRates">
+                        <condition-list combine="and">
+                            <condition-expr field-name="partyId" from-field="timesheet.partyId"/>
+                            <condition-expr field-name="rateTypeId" from-field="actual.rateTypeId"/>
+                            <condition-expr field-name="fromDate" operator="less-equals" from-field="actual.fromDate"/>
+                            <condition-list combine="or">
+                                <condition-expr field-name="thruDate" operator="equals" from-field="nullField"/>
+                                <condition-expr field-name="thruDate" operator="greater-equals" from-field="actual.fromDate"/>
+                            </condition-list>
+                        </condition-list>
+                    </entity-condition>
+                    <if-not-empty field="partyRates">
+                        <first-from-list list="partyRates" entry="partyRate"/>
+                        <if-not-empty field="partyRate.percentageUsed">
+                            <calculate field="actual.hours" type="Double">
+                                <calcop operator="multiply" field="actual.hours">
+                                    <calcop operator="get" field="partyRate.percentageUsed"/>
+                                </calcop>
+                            </calculate>
+                            <calculate field="actual.hours" type="Double">
+                                <calcop operator="divide" field="actual.hours">
+                                    <number value="100"/>
+                                </calcop>
+                            </calculate>
+                        </if-not-empty>
+                    </if-not-empty>
+                    <if>
+                        <condition>
+                            <or>
+                                <if-empty field="parameters.hoursPartyId"/>
+                                <and>
+                                    <not><if-empty field="parameters.hoursPartyId"/></not>
+                                    <if-compare-field field="timesheet.partyId" to-field="parameters.hoursPartyId" operator="equals"/>
+                                </and>
+                            </or>
+                        </condition>
+                        <then>
+                            <if-not-empty field="highInfo.originalActualHours">
+                                <calculate field="highInfo.originalActualHours" type="Double">
+                                    <calcop operator="get" field="highInfo.originalActualHours">
+                                        <calcop operator="add" field="originalActualHours"/>
+                                    </calcop>
+                                </calculate>
+                                <else>
+                                    <set field="highInfo.originalActualHours" from-field="originalActualHours" type="Double"/>
+                                </else>
+                            </if-not-empty>
+                            <if-not-empty field="highInfo.actualHours">
+                                <calculate field="highInfo.actualHours" type="Double">
+                                    <calcop operator="get" field="highInfo.actualHours">
+                                        <calcop operator="add" field="actual.hours"/>
+                                    </calcop>
+                                </calculate>
+                                <else>
+                                    <set field="highInfo.actualHours" from-field="actual.hours" type="Double"/>
+                                </else>
+                            </if-not-empty>
+                            <if-empty field="actual.invoiceId">
+                                <if-not-empty field="highInfo.actualNonBilledHours">
+                                    <calculate field="highInfo.actualNonBilledHours" type="Double">
+                                        <calcop operator="get" field="highInfo.actualNonBilledHours">
+                                            <calcop operator="add" field="actual.hours"/>
+                                        </calcop>
+                                    </calculate>
+                                    <else>
+                                        <set field="highInfo.actualNonBilledHours" from-field="actual.hours" type="Double"/>
+                                    </else>
+                                </if-not-empty>
+                            </if-empty>
+                        </then>
+                    </if>
+                    <!-- keep also a general total for the actual hours of all participants -->
+                    <if-not-empty field="highInfo.actualTotalHours">
+                        <calculate field="highInfo.actualTotalHours" type="Double">
+                            <calcop operator="add" field="actual.hours">
+                                <calcop operator="get" field="highInfo.actualTotalHours"/>
+                            </calcop>
+                        </calculate>
+                        <else>
+                            <set field="highInfo.actualTotalHours" from-field="actual.hours" type="Double"/>
+                        </else>
+                    </if-not-empty>
+                    <!-- keep also a general total for the actual hours of all participants however not yet billed -->
+                    <if-empty field="actual.invoiceId">
+                        <if-not-empty field="highInfo.actualNonBilledTotalHours">
+                            <calculate field="highInfo.actualNonBilledTotalHours" type="Double">
+                                <calcop operator="add" field="actual.hours">
+                                    <calcop operator="get" field="highInfo.actualNonBilledTotalHours"/>
+                                </calcop>
+                            </calculate>
+                            <else>
+                                <set field="highInfo.actualNonBilledTotalHours" from-field="actual.hours" type="Double"/>
+                            </else>
+                        </if-not-empty>
+                    </if-empty>
+                </if-not-empty>
+            </iterate>
+        </if-not-empty>
+    </simple-method>
+    <!-- iCalendar services -->
+
+    <simple-method method-name="getICalWorkEfforts" short-description="Get All Work Efforts Related To An iCalendar Publish Point" login-required="false">
+        <!-- Servlet already confirmed workEffortId is a valid publish point -->
+        <set field="workEffortId" from-field="parameters.workEffortId"/>
+        <entity-condition entity-name="WorkEffortPartyAssignment" list="assignedParties" filter-by-date="true">
+            <condition-list combine="and">
+                <condition-expr field-name="workEffortId" from-field="workEffortId"/>
+                <condition-expr field-name="roleTypeId" value="ICAL_MEMBER"/>
+            </condition-list>
+        </entity-condition>
+        <iterate list="assignedParties" entry="assignedParty">
+            <entity-condition list="resultList" entity-name="WorkEffortAndPartyAssign" filter-by-date="true">
+                <condition-list combine="and">
+                    <condition-expr field-name="scopeEnumId" value="WES_PUBLIC"/>
+                    <condition-expr field-name="workEffortTypeId" value="PUBLISH_PROPS" operator="not-equals"/>
+                    <condition-expr field-name="workEffortTypeId" operator="equals" from-field="parameters.workEffortTypeId" ignore-if-empty="true"/>
+                    <condition-expr field-name="partyId" from-field="assignedParty.partyId"/>
+                </condition-list>
+            </entity-condition>
+            <list-to-list list="resultList" to-list="workEfforts"/>
+        </iterate>
+        <entity-and entity-name="WorkEffortFixedAssetAssign" list="assignedFixedAssets" filter-by-date="true">
+            <field-map field-name="workEffortId" from-field="workEffortId"/>
+        </entity-and>
+        <iterate list="assignedFixedAssets" entry="assignedFixedAsset">
+            <entity-condition list="resultList" entity-name="WorkEffortAndFixedAssetAssign" filter-by-date="true">
+                <condition-list combine="and">
+                    <condition-expr field-name="scopeEnumId" value="WES_PUBLIC"/>
+                    <condition-expr field-name="workEffortTypeId" value="PUBLISH_PROPS" operator="not-equals"/>
+                    <condition-expr field-name="workEffortTypeId" operator="equals" from-field="parameters.workEffortTypeId" ignore-if-empty="true"/>
+                    <condition-expr field-name="fixedAssetId" from-field="assignedFixedAsset.fixedAssetId"/>
+                </condition-list>
+            </entity-condition>
+            <list-to-list list="resultList" to-list="workEfforts"/>
+        </iterate>
+        <entity-condition entity-name="WorkEffortAssocToView" list="resultList" filter-by-date="true">
+            <condition-list combine="and">
+                <condition-expr field-name="workEffortIdFrom" operator="equals" from-field="workEffortId"/>
+                <condition-expr field-name="workEffortTypeId" operator="equals" from-field="parameters.workEffortTypeId" ignore-if-empty="true"/>
+            </condition-list>
+        </entity-condition>
+        <list-to-list list="resultList" to-list="workEfforts"/>
+        <set field="workEfforts" from-field="groovy:org.apache.ofbiz.workeffort.workeffort.WorkEffortWorker.removeDuplicateWorkEfforts(workEfforts);" type="List"/>
+        <field-to-result field="workEfforts"/>
+    </simple-method>
+    
+    <simple-method method-name="getPartyICalUrl" short-description="Get The Party iCalendar URL" login-required="false">
+        <!-- RFC 2445 4.8.4.1 and 4.8.4.3 Value must be a URI (4.3.3) -->
+        <set field="partyId" from-field="parameters.partyId"/>
+        <entity-condition entity-name="PartyContactWithPurpose" list="contactMechs">
+            <condition-list combine="and">
+                <condition-list combine="or">
+                    <condition-expr field-name="contactMechPurposeTypeId" value="ICAL_URL"/>
+                    <condition-expr field-name="contactMechPurposeTypeId" value="PRIMARY_EMAIL"/>
+                </condition-list>
+                <condition-expr field-name="partyId" from-field="partyId"/>
+                <condition-expr field-name="purposeThruDate" from-field="null"/>
+            </condition-list>
+            <order-by field-name="contactMechPurposeTypeId"/>
+        </entity-condition>
+        <if-compare field="${groovy:contactMechs.size()}" operator="greater" value="0" type="Integer">
+            <field-to-result field="contactMechs[0].infoString" result-name="iCalUrl"/>
+        </if-compare>
+    </simple-method>
+
+</simple-methods>

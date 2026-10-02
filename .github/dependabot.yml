@@ -1,0 +1,101 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 40
+    #groups:
+    #  all-dependencies:
+    #    patterns:
+    #      - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+
+  - package-ecosystem: "gradle"
+    directory: "/"
+    target-branch: "release24.09"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 40
+    #groups:
+    #  all-dependencies:
+    #    patterns:
+    #      - "*"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+      # commons-imaging has been alpha-only since 2019 (alpha1..1.0.0-alpha6,
+      # see the version catalog comment) with no stable release in sight;
+      # we've deliberately deferred adapting to its post-alpha3 API changes
+      # until it ships an actual 1.0.0. This keeps Dependabot from reopening
+      # an alpha-to-alpha bump PR forever, while still surfacing a real 1.0.0
+      # (or later) release when one finally happens. Trunk no longer needs
+      # this rule (OFBIZ-13507 removed the dependency there); this branch
+      # still has commons-imaging until that fix is backported.
+      - dependency-name: "org.apache.commons:commons-imaging"
+        versions: ["< 1.0.0"]
+
+  - package-ecosystem: "npm"
+    directory: "themes/common-theme/webapp/common-theme/js"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 20
+
+  - package-ecosystem: "npm"
+    directory: "framework/rest-api"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 20
+
+  - package-ecosystem: "npm"
+    directory: "themes/common-theme/webapp/common-theme/js"
+    target-branch: "release24.09"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 20
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: "release24.09"
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /
+    target-branch: "release24.09"
+    schedule:
+      interval: daily

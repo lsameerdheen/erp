@@ -1,0 +1,426 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+package org.apache.ofbiz.product.product.imagemanagement
+
+import org.apache.ofbiz.base.util.ScriptUtil
+import org.apache.ofbiz.base.util.StringUtil
+import org.apache.ofbiz.base.util.UtilDateTime
+import org.apache.ofbiz.base.util.UtilProperties
+import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.service.ServiceUtil
+
+import java.sql.Timestamp
+
+/**
+ * Method to upload multiple images for product
+ */
+Map uploadProductImages() {
+    Map result = success()
+    Map serviceResult = [:]
+    result.productId = parameters.productId
+    Map addAdditionalViewForProductMap = new HashMap<>(parameters)
+    if (parameters._additionalImageOne_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageOne
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageOne_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageOne_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    if (parameters._additionalImageTwo_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageTwo
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageTwo_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageTwo_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    if (parameters._additionalImageThree_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageThree
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageThree_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageThree_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    if (parameters._additionalImageFour_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageFour
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageFour_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageFour_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    if (parameters._additionalImageFive_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageFive
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageFive_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageFive_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    if (parameters._additionalImageSix_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageSix
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageSix_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageSix_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    if (parameters._additionalImageSeven_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageSeven
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageSeven_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageSeven_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    if (parameters._additionalImageEight_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageEight
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageEight_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageEight_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    if (parameters._additionalImageNine_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageNine
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageNine_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageNine_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    if (parameters._additionalImageTen_fileName) {
+        addAdditionalViewForProductMap.productId = parameters.productId
+        addAdditionalViewForProductMap.imageResize = parameters.imageResize
+        addAdditionalViewForProductMap.uploadedFile = parameters.additionalImageTen
+        addAdditionalViewForProductMap.productContentTypeId = 'IMAGE'
+        addAdditionalViewForProductMap._uploadedFile_fileName = parameters._additionalImageTen_fileName
+        addAdditionalViewForProductMap._uploadedFile_contentType = parameters._additionalImageTen_contentType
+        serviceResult = run service: 'addMultipleuploadForProduct', with: addAdditionalViewForProductMap
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        addAdditionalViewForProductMap.clear()
+    }
+    return result
+}
+
+/**
+ * Remove Content From Product and Image File
+ */
+Map removeProductContentAndImageFile() {
+    Map removeContent
+    Map serviceResult = [:]
+    List checkDefaultImage = from('ProductContent').where(productId: parameters.productId, contentId: parameters.contentId,
+            productContentTypeId: 'DEFAULT_IMAGE').queryList()
+    if (checkDefaultImage) {
+        String errorMessage = UtilProperties.getMessage('ProductErrorUiLabels', 'ImageManagementErrorRmoveDefaultImage', locale)
+        logError("Cannot remove image contentId ${parameters.contentId}")
+        fail(errorMessage)
+    }
+    List contentAssocs = from('ContentAssoc').where(contentId: parameters.contentId, contentAssocTypeId: 'IMAGE_THUMBNAIL').queryList()
+    if (contentAssocs) {
+        for (GenericValue contentAssoc : contentAssocs) {
+            contentAssoc.remove()
+            removeContent = [contentId: contentAssoc.contentIdTo, productId: parameters.productId]
+            serviceResult = run service: 'removeProductContentForImageManagement', with: removeContent
+            require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        }
+    }
+    GenericValue lookedUpValue = from('ProductContent').where(parameters).queryOne()
+    lookedUpValue.remove()
+    removeContent = [contentId: parameters.contentId, productId: parameters.productId]
+    serviceResult = run service: 'removeProductContentForImageManagement', with: removeContent
+    require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+    return success()
+}
+
+/**
+ * Remove Content From Product
+ */
+Map removeProductContentForImageManagement() {
+    Map serviceResult = [:]
+    List contentRoles = from('ContentRole').where(contentId: parameters.contentId).queryList()
+    if (contentRoles) {
+        contentRoles.get(0).remove()
+    }
+    List contentApprovals = from('ContentApproval').where(contentId: parameters.contentId, roleTypeId: 'IMAGEAPPROVER').queryList()
+    for (GenericValue contentApproval : contentApprovals) {
+        contentApproval.remove()
+    }
+    List contentKeywords = from('ContentKeyword').where(contentId: parameters.contentId).queryList()
+    for (GenericValue contentKeyword : contentKeywords) {
+        contentKeyword.remove()
+    }
+    GenericValue content = from('Content').where(contentId: parameters.contentId).queryOne()
+    Map removeContentPKMap = [contentId: parameters.contentId]
+    serviceResult = run service: 'removeContent', with: removeContentPKMap
+    require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+
+    String dataResourceId = content.dataResourceId
+    List dataResourceRoles = from('DataResourceRole').where(dataResourceId: dataResourceId).queryList()
+    if (dataResourceRoles) {
+        dataResourceRoles.get(0).remove()
+    }
+    GenericValue dataResource = from('DataResource').where(dataResourceId: dataResourceId).queryOne()
+    Map removeImageFile = [productId: parameters.productId, contentId: parameters.contentId, objectInfo: dataResource.objectInfo,
+                           dataResourceName: dataResource.dataResourceName]
+    serviceResult = run service: 'removeImageFileForImageManagement', with: removeImageFile
+    require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+
+    Map removeDataResourcePKMap = [dataResourceId: dataResourceId]
+    serviceResult = run service: 'removeDataResource', with: removeDataResourcePKMap
+    require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+    return success()
+}
+
+/**
+ * Set Image Detail
+ */
+Map setImageDetail() {
+    GenericValue productContent = from('ProductContent').where(parameters).queryOne()
+    productContent.sequenceNum = parameters.sequenceNum
+    productContent.store()
+    if (parameters.sequenceNum) {
+        ScriptUtil.executeScript(
+                'component://product/src/main/groovy/org/apache/ofbiz/product/catalog/imagemanagement/SortSequenceNum.groovy',
+                null, context)
+        productContent.sequenceNum = parameters.sequenceNum
+        productContent.store()
+    }
+    // set caption
+    GenericValue content = from('Content').where(parameters).queryOne()
+    content.description = parameters.description
+    content.store()
+
+    if (content.statusId == 'IM_APPROVED') {
+        update('DataResource').where(dataResourceId: content.dataResourceId).set([isPublic: parameters.drIsPublic])
+    }
+    return success()
+}
+
+/**
+ * Update Status Image Management
+ */
+Map updateStatusImageManagement() {
+    Map result = success()
+    Timestamp nowTimestamp = UtilDateTime.nowTimestamp()
+    String checkStatusVal = parameters.checkStatusId
+    List statusId = StringUtil.split(checkStatusVal, '/')
+    if (statusId) {
+        parameters.checkStatusId = statusId.get(0)
+    }
+    String autoApproveImage = UtilProperties.getPropertyValue('catalog.properties', 'image.management.autoApproveImage')
+    String multipleApproval = UtilProperties.getPropertyValue('catalog.properties', 'image.management.multipleApproval')
+    if (autoApproveImage == 'Y') {
+        List contentApprovals = from('ContentApproval').where(contentId: parameters.contentId, roleTypeId: 'IMAGEAPPROVER').queryList()
+        for (GenericValue contentApproval : contentApprovals) {
+            contentApproval.approvalStatusId = parameters.checkStatusId
+            contentApproval.store()
+        }
+    } else {
+        update('ContentApproval').where(partyId: userLogin.partyId, contentId: parameters.contentId, roleTypeId: 'IMAGEAPPROVER')
+                .first().set([approvalStatusId: parameters.checkStatusId])
+    }
+    if (parameters.checkStatusId == 'IM_REJECTED') {
+        List checkRejects = from('ContentApproval').where(contentId: parameters.contentId, roleTypeId: 'IMAGEAPPROVER').queryList()
+        for (GenericValue checkReject : checkRejects) {
+            checkReject.approvalStatusId = 'IM_REJECTED'
+            checkReject.store()
+        }
+        update('Content').where(parameters).set([statusId: 'IM_REJECTED', createdByUserLogin: userLogin.userLoginId])
+    } else {
+        if (parameters.checkStatusId == 'IM_APPROVED') {
+            if (multipleApproval == 'Y') {
+                Long countParty = from('ContentApproval').where(contentId: parameters.contentId, roleTypeId: 'IMAGEAPPROVER').queryCount()
+                if (countParty == (Long) 1) {
+                    update('Content').where(parameters).set([statusId: 'IM_APPROVED'])
+
+                    update('ProductContent').where(contentId: parameters.contentId, productContentTypeId: 'IMAGE')
+                            .first().set([purchaseFromDate: nowTimestamp])
+                } else {
+                    Long countApprove = from('ContentApproval').where(contentId: parameters.contentId, roleTypeId: 'IMAGEAPPROVER',
+                            approvalStatusId: 'IM_APPROVED').queryCount()
+                    if (countApprove >= (Long) 2) {
+                        update('Content').where(parameters).set([statusId: 'IM_APPROVED'])
+
+                        update('ProductContent').where(contentId: parameters.contentId, productContentTypeId: 'IMAGE')
+                                .first().set([purchaseFromDate: nowTimestamp])
+
+                        List checkApproveList = from('ContentApproval').where(contentId: parameters.contentId, roleTypeId: 'IMAGEAPPROVER')
+                                .queryList()
+                        for (GenericValue checkApprove : checkApproveList) {
+                            checkApprove.approvalStatusId = 'IM_APPROVED'
+                            checkApprove.store()
+                        }
+                    }
+                }
+            } else {
+                update('Content').where(parameters).set([statusId: 'IM_APPROVED'])
+
+                update('ProductContent').where(contentId: parameters.contentId, productContentTypeId: 'IMAGE')
+                        .first().set([purchaseFromDate: nowTimestamp])
+
+                List checkApproveList = from('ContentApproval').where(contentId: parameters.contentId, roleTypeId: 'IMAGEAPPROVER').queryList()
+                for (GenericValue checkApprove : checkApproveList) {
+                    checkApprove.approvalStatusId = 'IM_APPROVED'
+                    checkApprove.store()
+                }
+            }
+        }
+    }
+    result.put('productId', parameters.productId)
+    return result
+}
+
+/**
+ * Add Rejected Reason Image Management
+ */
+Map addRejectedReasonImageManagement() {
+    Timestamp nowTimestamp = UtilDateTime.nowTimestamp()
+    String description
+    switch (parameters.description) {
+        case 'RETAKE_PHOTO':
+            description = 'Re-take Photo'
+            break
+        case 'REMOVE_LOGO':
+            description = 'Remove Logo'
+            break
+        case 'OTHER':
+            description = 'Other'
+            break
+        default:
+            description = 'Other'
+            break
+    }
+    update('Content').where(parameters).set([description: description])
+    update('ProductContent').where(contentId: parameters.contentId, productContentTypeId: 'IMAGE')
+            .first().set([thruDate: nowTimestamp])
+    return success()
+}
+
+/**
+ * Create Content Approval of Image
+ */
+Map createImageContentApproval() {
+    Timestamp nowTimestamp = UtilDateTime.nowTimestamp()
+    List partyRoles = from('PartyRole').where(roleTypeId: 'IMAGEAPPROVER').queryList()
+    for (GenericValue partyRole : partyRoles) {
+        Map contentApproval = [partyId: partyRole.partyId, contentId: parameters.contentId, roleTypeId: 'IMAGEAPPROVER',
+                               approvalDate: nowTimestamp, approvalStatusId: 'IM_PENDING']
+        Map serviceResult = run service: 'createContentApproval', with: contentApproval
+        require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+    }
+    return success()
+}
+
+/**
+ * Remove Content Approval of Image
+ */
+Map removeImageContentApproval() {
+    List contentApprovals = from('ContentApproval').where(partyId: parameters.partyId, roleTypeId: 'IMAGEAPPROVER').queryList()
+    for (GenericValue contentApproval : contentApprovals) {
+        contentApproval.remove()
+    }
+    return success()
+}
+
+/**
+ * Resize Images
+ */
+Map resizeImages() {
+    Map serviceResult = [:]
+    if (parameters.resizeOption == 'resizeAllImages') {
+        List productContentAndInfos = from('ProductContentAndInfo').where(productId: parameters.productId, productContentTypeId: 'IMAGE').queryList()
+        // <field-map field-name="statusId" value="IM_APPROVED"/>
+        for (GenericValue productContentAndInfo : productContentAndInfos) {
+            Map resizeImageMap = [productId: productContentAndInfo.productId, dataResourceName: productContentAndInfo.drDataResourceName,
+                                  resizeWidth: parameters.size]
+            serviceResult = run service: 'resizeImageOfProduct', with: resizeImageMap
+            require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        }
+    }
+    if (parameters.resizeOption == 'createNewThumbnail') {
+        Map removeImageBySizeMap = [productId: parameters.productId, mapKey: parameters.size]
+        run service: 'removeImageBySize', with: removeImageBySizeMap
+
+        List productContentAndInfos = from('ProductContentAndInfo').where(productId: parameters.productId, productContentTypeId: 'IMAGE').queryList()
+        // <field-map field-name="statusId" value="IM_APPROVED"/>
+        for (GenericValue productContentAndInfo : productContentAndInfos) {
+            Map createNewImageThumbnailMap = [productId: productContentAndInfo.productId,
+                                              contentId: productContentAndInfo.contentId,
+                                              dataResourceName: productContentAndInfo.drDataResourceName,
+                                              drObjectInfo: productContentAndInfo.drObjectInfo,
+                                              sizeWidth: parameters.size]
+            serviceResult = run service: 'createNewImageThumbnail', with: createNewImageThumbnailMap
+            require(ServiceUtil.isSuccess(serviceResult) as boolean, serviceResult.errorMessage)
+        }
+    }
+    return success()
+}
+
+/**
+ * Remove Image By Size
+ */
+Map removeImageBySize() {
+    List productContentAndInfos = from('ProductContentAndInfo').where(productId: parameters.productId, productContentTypeId: 'IMAGE').queryList()
+    // <field-map field-name="statusId" value="IM_APPROVED"/>
+    for (GenericValue productContentAndInfo : productContentAndInfos) {
+        List contentAssocs = from('ContentAssoc').where(contentId: productContentAndInfo.contentId, contentAssocTypeId: 'IMAGE_THUMBNAIL',
+                mapKey: parameters.mapKey).queryList()
+        if (contentAssocs) {
+            contentAssocs.each { GenericValue contentAssoc ->
+                contentAssoc.remove()
+                Map removeContent = [contentId: contentAssoc.contentIdTo, productId: parameters.productId]
+                Map serviceResult = run service: 'removeProductContentForImageManagement', with: removeContent
+                if (!ServiceUtil.isSuccess(serviceResult)) {
+                    return error(serviceResult.errorMessage)
+                }
+            }
+        }
+    }
+    return success()
+}

@@ -1,0 +1,36 @@
+{
+    "name": "ofbiz-common-theme",
+    "description": "ofbiz-framework common-theme NPM dependencies configuration",
+    "repository": "https://github.com/apache/ofbiz-framework.git",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "@chinchilla-software/jquery-ui-timepicker-addon": "^1.6.3",
+        "datejs": "^1.0.0-rc3",
+        "daterangepicker": "^3.1.0",
+        "dompurify": "^3.4.16",
+        "featherlight": "^1.7.14",
+        "flot": "^4.2.6",
+        "inputmask": "^5.0.10",
+        "jgrowl": "^1.5.1",
+        "jquery": "^4.0.0",
+        "jquery-jeditable": "^2.0.19",
+        "jquery-migrate": "^4.0.2",
+        "jquery-ui-dist": "^1.13.3",
+        "jquery-validation": "^1.22.1",
+        "jquery.browser": "^0.1.0",
+        "js-cookie": "^3.0.8",
+        "jstree": "^3.3.17",
+        "moment-timezone": "^0.6.4",
+        "moment-with-locales-es6": "^1.0.1",
+        "readmore-js": "^2.2.1",
+        "select2": "^4.1.0",
+        "trumbowyg": "^2.31.0",
+        "uglify-js": "3.19.3"
+    },
+    "overrides": {
+        "moment": "^2.31.0"
+    },
+    "scripts": {
+        "uglify": "uglifyjs node_modules/flot/dist/es5/jquery.flot.js -c -m -o node_modules/flot/dist/es5/jquery.flot.min.js"
+    }
+}

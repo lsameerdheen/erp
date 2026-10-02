@@ -1,0 +1,275 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.ofbiz.entity.util;
+
+import java.io.IOException;
+import java.security.Key;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.ofbiz.base.util.Debug;
+import org.apache.ofbiz.base.util.GeneralException;
+import org.apache.ofbiz.base.util.UtilObject;
+import org.apache.ofbiz.base.util.UtilValidate;
+import org.apache.ofbiz.entity.Delegator;
+import org.apache.ofbiz.entity.EntityCryptoException;
+import org.apache.ofbiz.entity.GenericEntityException;
+import org.apache.ofbiz.entity.GenericValue;
+import org.apache.ofbiz.entity.model.ModelField.EncryptMethod;
+import org.apache.ofbiz.entity.transaction.TransactionUtil;
+import org.apache.shiro.crypto.cipher.AesCipherService;
+import org.apache.shiro.crypto.cipher.OperationMode;
+import org.apache.shiro.crypto.cipher.PaddingScheme;
+import org.apache.shiro.crypto.hash.DefaultHashService;
+import org.apache.shiro.crypto.hash.HashRequest;
+import org.apache.shiro.crypto.hash.HashService;
+
+public final class EntityCrypto {
+
+    private static final String MODULE = EntityCrypto.class.getName();
+
+    private final Delegator delegator;
+    private final ConcurrentMap<String, byte[]> keyMap = new ConcurrentHashMap<>();
+    private final StorageHandler[] handlers;
+
+    public EntityCrypto(Delegator delegator, String kekText) throws EntityCryptoException {
+        this.delegator = delegator;
+        byte[] kek;
+        kek = UtilValidate.isNotEmpty(kekText) ? Base64.decodeBase64(kekText) : null;
+        handlers = new StorageHandler[] {
+            new ShiroStorageHandler(kek)
+        };
+    }
+
+    public void clearKeyCache() {
+        keyMap.clear();
+    }
+
+    /** Encrypts an Object into an encrypted hex encoded String */
+    @Deprecated
+    public String encrypt(String keyName, Object obj) throws EntityCryptoException {
+        return encrypt(keyName, EncryptMethod.TRUE, obj);
+    }
+
+    /** Encrypts an Object into an encrypted hex encoded String */
+    public String encrypt(String keyName, EncryptMethod encryptMethod, Object obj) throws EntityCryptoException {
+        try {
+            byte[] key = this.findKey(keyName, handlers[0]);
+            if (key == null) {
+                EntityCryptoException caught = null;
+                try {
+                    this.createKey(keyName, handlers[0], encryptMethod);
+                } catch (EntityCryptoException e) {
+                    // either a database read error, or a duplicate key insert
+                    // if the latter, try to fetch the value created by the
+                    // other thread.
+                    caught = e;
+                } finally {
+                    try {
+                        key = this.findKey(keyName, handlers[0]);
+                    } catch (EntityCryptoException e) {
+                        // this is bad, couldn't lookup the value, some bad juju
+                        // is occurring; rethrow the original exception if available
+                        throw caught != null ? caught : e;
+                    }
+                    if (key == null) {
+                        // this is also bad, couldn't find any key
+                        throw caught != null ? caught : new EntityCryptoException("could not lookup key (" + keyName + ") after creation");
+                    }
+                }
+            }
+            return handlers[0].encryptValue(encryptMethod, key, UtilObject.getBytes(obj));
+        } catch (GeneralException e) {
+            throw new EntityCryptoException(e);
+        }
+    }
+
+    // NOTE: this is definitely for debugging purposes only, do not uncomment in production server for security reasons:
+    // if you uncomment this, then change the real decrypt method to _decrypt.
+    /*
+    public Object decrypt(String keyName, String encryptedString) throws EntityCryptoException {
+        Object result = _decrypt(keyName, encryptedString);
+        Debug.logInfo("Decrypted value [%s] to result: %s", MODULE, encryptedString, decryptedObj);
+        return result;
+    }
+    */
+
+    /** Decrypts a hex encoded String into an Object */
+    public Object decrypt(String keyName, EncryptMethod encryptMethod, String encryptedString) throws EntityCryptoException {
+        try {
+            return doDecrypt(keyName, encryptMethod, encryptedString, handlers[0]);
+        } catch (Exception e) {
+            // Shiro signals decryption failures with org.apache.shiro.crypto.CryptoException, which is a RuntimeException
+            throw new EntityCryptoException(e);
+        }
+    }
+
+    protected Object doDecrypt(String keyName, EncryptMethod encryptMethod, String encryptedString, StorageHandler handler) throws GeneralException {
+        byte[] key = this.findKey(keyName, handler);
+        if (key == null) {
+            throw new EntityCryptoException("key(" + keyName + ") not found in database");
+        }
+        byte[] decryptedBytes = handler.decryptValue(key, encryptMethod, encryptedString);
+        try {
+            return UtilObject.getObjectException(decryptedBytes);
+        } catch (ClassNotFoundException | IOException e) {
+            throw new GeneralException(e);
+        }
+    }
+
+    protected byte[] findKey(String originalKeyName, StorageHandler handler) throws EntityCryptoException {
+        String hashedKeyName = handler.getHashedKeyName(originalKeyName);
+        String keyMapName = handler.getKeyMapPrefix(hashedKeyName) + hashedKeyName;
+        if (keyMap.containsKey(keyMapName)) {
+            return keyMap.get(keyMapName);
+        }
+        // it's ok to run the bulk of this method unlocked or
+        // unprotected; since the same result will occur even if
+        // multiple threads request the same key, there is no
+        // need to protected this block of code.
+
+        GenericValue keyValue = null;
+        try {
+            keyValue = EntityQuery.use(delegator).from("EntityKeyStore").where("keyName", hashedKeyName).queryOne();
+        } catch (GenericEntityException e) {
+            throw new EntityCryptoException(e);
+        }
+        if (keyValue == null || keyValue.get("keyText") == null) {
+            return null;
+        }
+        try {
+            byte[] keyBytes = handler.decodeKeyBytes(keyValue.getString("keyText"));
+            keyMap.putIfAbsent(keyMapName, keyBytes);
+            // Do not remove the next line, it's there to handle the
+            // case of multiple threads trying to find the same key
+            // both threads will do the findOne call, only one will
+            // succeed at the putIfAbsent, but both will then fetch
+            // the same value with the following get().
+            return keyMap.get(keyMapName);
+        } catch (GeneralException e) {
+            throw new EntityCryptoException(e);
+        }
+    }
+
+    protected void createKey(String originalKeyName, StorageHandler handler, EncryptMethod encryptMethod) throws EntityCryptoException {
+        String hashedKeyName = handler.getHashedKeyName(originalKeyName);
+        Key key = handler.generateNewKey();
+        final GenericValue newValue = delegator.makeValue("EntityKeyStore");
+        try {
+            newValue.set("keyText", handler.encodeKey(key.getEncoded()));
+        } catch (GeneralException e) {
+            throw new EntityCryptoException(e);
+        }
+        newValue.set("keyName", hashedKeyName);
+
+        try {
+            TransactionUtil.doNewTransaction(() -> {
+                delegator.create(newValue);
+                return null;
+            }, "storing encrypted key", 0, true);
+        } catch (GenericEntityException e) {
+            throw new EntityCryptoException(e);
+        }
+    }
+
+    protected abstract static class StorageHandler {
+        protected abstract Key generateNewKey() throws EntityCryptoException;
+
+        protected abstract String getHashedKeyName(String originalKeyName);
+        protected abstract String getKeyMapPrefix(String hashedKeyName);
+
+        protected abstract byte[] decodeKeyBytes(String keyText) throws GeneralException;
+        protected abstract String encodeKey(byte[] key) throws GeneralException;
+
+        protected abstract byte[] decryptValue(byte[] key, EncryptMethod encryptMethod, String encryptedString) throws GeneralException;
+        protected abstract String encryptValue(EncryptMethod encryptMethod, byte[] key, byte[] objBytes) throws GeneralException;
+    }
+
+    protected static final class ShiroStorageHandler extends StorageHandler {
+        private final HashService hashService;
+        private final AesCipherService cipherService;
+        private final AesCipherService legacyCipherService;
+        private final byte[] kek;
+
+        protected ShiroStorageHandler(byte[] kek) {
+            hashService = new DefaultHashService();
+            cipherService = new AesCipherService();
+            // Kept only to decrypt values written before the fix for OFBIZ-13599, which forced AES into ECB
+            // mode (no IV, deterministic ciphertext) instead of using AesCipherService's safer default.
+            // Never used for new encryption; existing ECB values are migrated via the reencryptFields service.
+            legacyCipherService = new AesCipherService();
+            legacyCipherService.setMode(OperationMode.ECB);
+            legacyCipherService.setPaddingScheme(PaddingScheme.PKCS5);
+            this.kek = kek;
+        }
+
+        @Override
+        protected Key generateNewKey() {
+            return cipherService.generateNewKey();
+        }
+
+        @Override
+        protected String getHashedKeyName(String originalKeyName) {
+            HashRequest hashRequest = new HashRequest.Builder().setSource(originalKeyName).build();
+            return hashService.computeHash(hashRequest).toBase64();
+        }
+
+        @Override
+        protected String getKeyMapPrefix(String hashedKeyName) {
+            return "{shiro}";
+        }
+
+        @Override
+        protected byte[] decodeKeyBytes(String keyText) throws GeneralException {
+            byte[] keyBytes = Base64.decodeBase64(keyText);
+            if (kek != null) {
+                keyBytes = cipherService.decrypt(keyBytes, kek).getClonedBytes();
+            }
+            return keyBytes;
+        }
+
+        @Override
+        protected String encodeKey(byte[] key) throws GeneralException {
+            if (kek != null) {
+                return cipherService.encrypt(key, kek).toBase64();
+            } else {
+                return Base64.encodeBase64String(key);
+            }
+        }
+
+        @Override
+        protected byte[] decryptValue(byte[] key, EncryptMethod encryptMethod, String encryptedString) throws GeneralException {
+            byte[] encryptedBytes = Base64.decodeBase64(encryptedString);
+            try {
+                return cipherService.decrypt(encryptedBytes, key).getClonedBytes();
+            } catch (Exception e) {
+                // Fall back to the legacy ECB decrypt for values written before the fix for OFBIZ-13599;
+                // see the comment on legacyCipherService above.
+                Debug.logInfo("Decrypt with current cipher failed, trying legacy ECB cipher", MODULE);
+                return legacyCipherService.decrypt(encryptedBytes, key).getClonedBytes();
+            }
+        }
+
+        @Override
+        protected String encryptValue(EncryptMethod encryptMethod, byte[] key, byte[] objBytes) throws GeneralException {
+            return cipherService.encrypt(objBytes, key).toBase64();
+        }
+    }
+}

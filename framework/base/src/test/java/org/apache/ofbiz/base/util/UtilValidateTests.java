@@ -1,0 +1,63 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.ofbiz.base.util;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
+
+public class UtilValidateTests {
+
+    @Test
+    public void testUrlValidations() throws Exception {
+        assertFalse(UtilValidate.isUrlInStringAndDoesNotStartByComponentProtocol(""));
+        assertFalse(UtilValidate.isUrlInStringAndDoesNotStartByComponentProtocol("non-url-string"));
+        assertFalse(UtilValidate.isUrlInStringAndDoesNotStartByComponentProtocol("component://foo/bar"));
+        assertTrue(UtilValidate.isUrlInStringAndDoesNotStartByComponentProtocol(" component://foo/bar"));
+        assertTrue(UtilValidate.isUrlInStringAndDoesNotStartByComponentProtocol("http://foo/bar"));
+        assertTrue(UtilValidate.isUrlInStringAndDoesNotStartByComponentProtocol("https://foo/bar"));
+        assertFalse(UtilValidate.isUrlInStringAndDoesNotStartByComponentProtocol("component://foo/bar?param=http://moo/far"));
+
+        assertTrue(UtilValidate.isUrlInString(""));
+        assertFalse(UtilValidate.isUrlInString("non-url-string"));
+        assertTrue(UtilValidate.isUrlInString("component://foo/bar"));
+        assertTrue(UtilValidate.isUrlInString(" component://foo/bar"));
+        assertTrue(UtilValidate.isUrlInString("http://foo/bar"));
+        assertTrue(UtilValidate.isUrlInString("https://foo/bar"));
+        assertTrue(UtilValidate.isUrlInString("component://foo/bar?param=http://moo/far"));
+    }
+
+    @Test
+    public void testIsAllowedPathDefaultDenyWhenUnconfigured() throws Exception {
+        UtilProperties.setPropertyValueInMemory("security", "allowFilePaths", "");
+        assertFalse(UtilValidate.isAllowedPath("/opt/ofbiz/templates/foo.ftl"));
+        assertFalse(UtilValidate.isAllowedPath("/dev/fd/292"));
+        assertFalse(UtilValidate.isAllowedPath(""));
+    }
+
+    @Test
+    public void testIsAllowedPathHonorsConfiguredPattern() throws Exception {
+        UtilProperties.setPropertyValueInMemory("security", "allowFilePaths", "/opt/ofbiz/templates/.*");
+        assertTrue(UtilValidate.isAllowedPath("/opt/ofbiz/templates/foo.ftl"));
+        assertFalse(UtilValidate.isAllowedPath("/etc/passwd"));
+        // restore default-deny for other tests sharing the in-memory properties cache
+        UtilProperties.setPropertyValueInMemory("security", "allowFilePaths", "");
+    }
+}
