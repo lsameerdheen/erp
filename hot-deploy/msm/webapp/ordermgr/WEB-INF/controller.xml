@@ -83,6 +83,24 @@
         <response name="success" type="view" value="PurchaseOrderGstPdf"/>
         <response name="error"   type="view" value="error"/>
     </request-map>
+	
+	<request-map uri="receiveAndBackOrder">
+		<security https="true" auth="true"/>
+		<event type="service" invoke="receiveAndBackOrder"/>
+		<response name="success" type="request-redirect" value="PurchaseOrderGst">
+			<redirect-parameter name="orderId"/>
+		</response>
+		<response name="error" type="view" value="error"/>
+	</request-map>
+
+	<request-map uri="processBackOrder">
+		<security https="true" auth="true"/>
+		<event type="service" invoke="processBackOrder"/>
+		<response name="success" type="request-redirect" value="PurchaseOrderGst">
+			<redirect-parameter name="orderId"/>
+		</response>
+		<response name="error" type="view" value="error"/>
+	</request-map>
 
     <!-- =========================================================
          4. VIEW MAPS
