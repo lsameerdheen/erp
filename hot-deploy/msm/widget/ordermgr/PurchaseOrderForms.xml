@@ -1,0 +1,32 @@
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="http://ofbiz.apache.org/dtds/widget-form.xsd">
+    <form name="PurchaseOrderItemForm" type="list" ...>
+        <field name="supplierGstin" title="Supplier GSTIN">
+            <text />
+        </field>
+        <field name="hsnCode" title="HSN Code">
+            <text />
+        </field>
+        <field name="igstPercent" title="IGST %">
+            <text />
+        </field>
+        <field name="igstAmount" title="IGST Amt">
+            <text />
+        </field>
+        <field name="cgstPercent" title="CGST %">
+            <text />
+        </field>
+        <field name="cgstAmount" title="CGST Amt">
+            <text />
+        </field>
+        <field name="sgstPercent" title="SGST %">
+            <text />
+        </field>
+        <field name="sgstAmount" title="SGST Amt">
+            <text />
+        </field>
+        <field name="grNo" title="GR No.">
+            <text />
+        </field>
+    </form>
+</forms>

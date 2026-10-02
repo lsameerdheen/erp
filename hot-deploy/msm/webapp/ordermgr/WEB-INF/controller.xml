@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site-conf xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="http://ofbiz.apache.org/dtds/site-conf.xsd">
+
+    <!-- =========================================================
+         0. INHERIT CORE CONTROLLERS
+         Pulls in all existing ordermgr + common request/view maps.
+         Your local definitions below override core ones with the
+         same URI.
+         ========================================================= -->
+    <include location="component://common/webcommon/WEB-INF/common-controller.xml"/>
+    <include location="component://order/webapp/ordermgr/WEB-INF/controller.xml"/>
+
+    <!-- =========================================================
+         1. GLOBAL CONFIG
+         ========================================================= -->
+    <site-conf-property key="siteId" value="ORDERMGR"/>
+    <site-conf-property key="default-errorpage" value="error"/>
+    <site-conf-property key="default-request" value="main"/>
+    <site-conf-property key="default-view" value="main"/>
+    <site-conf-property key="default-response" value="success"/>
+
+    <!-- =========================================================
+         2. HANDLERS (pre/post processors)
+         ========================================================= -->
+    <handler name="events" type="request" class="org.apache.ofbiz.webapp.event.EventHandler"/>
+    <handler name="view"   type="view"    class="org.apache.ofbiz.webapp.view.ViewHandler"/>
+    <handler name="screen" type="view"    class="org.apache.ofbiz.widget.renderer.ScreenRenderer"/>
+
+    <!-- =========================================================
+         3. REQUEST MAPS — Purchase Order GST Flow
+         ========================================================= -->
+
+    <!-- 3.1 View a purchase order with the GST columns -->
+    <request-map uri="PurchaseOrderGst">
+        <security https="true" auth="true"/>
+        <event type="java" path="org.apache.ofbiz.order.order.OrderReadServices"
+               invoke="getOrderHeader"/>
+        <response name="success" type="view" value="PurchaseOrderGstScreen"/>
+        <response name="error"   type="view" value="error"/>
+    </request-map>
+
+    <!-- 3.2 Add a new PO item with GST / HSN / GR fields -->
+    <request-map uri="createPurchaseOrderItemGst">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createPurchaseOrderItemGst"/>
+        <response name="success" type="view" value="PurchaseOrderGstScreen"/>
+        <response name="error"   type="view" value="error"/>
+    </request-map>
+
+    <!-- 3.3 Update existing PO item GST values -->
+    <request-map uri="updatePurchaseOrderItemGst">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="updatePurchaseOrderItemGst"/>
+        <response name="success" type="request-redirect" value="PurchaseOrderGst">
+            <redirect-parameter name="orderId"/>
+        </response>
+        <response name="error" type="view" value="error"/>
+    </request-map>
+
+    <!-- 3.4 Recalculate tax for a single PO line -->
+    <request-map uri="calculatePurchaseOrderTax">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="calculatePurchaseOrderTax"/>
+        <response name="success" type="view" value="PurchaseOrderGstScreen"/>
+        <response name="error"   type="view" value="error"/>
+    </request-map>
+
+    <!-- 3.5 Delete a PO item GST record -->
+    <request-map uri="deletePurchaseOrderItemGst">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="deletePurchaseOrderItemGst"/>
+        <response name="success" type="request-redirect" value="PurchaseOrderGst">
+            <redirect-parameter name="orderId"/>
+        </response>
+        <response name="error" type="view" value="error"/>
+    </request-map>
+
+    <!-- 3.6 Print / export PO with GST breakdown -->
+    <request-map uri="PrintPurchaseOrderGst">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="preparePurchaseOrderGstPrint"/>
+        <response name="success" type="view" value="PurchaseOrderGstPdf"/>
+        <response name="error"   type="view" value="error"/>
+    </request-map>
+
+    <!-- =========================================================
+         4. VIEW MAPS
+         ========================================================= -->
+
+    <!-- Main GST entry screen -->
+    <view-map name="PurchaseOrderGstScreen" type="screen"
+              page="component://mycompany/widget/ordermgr/PurchaseOrderScreens.xml#PurchaseOrderGstScreen"/>
+
+    <!-- PDF / print view (optional) -->
+    <view-map name="PurchaseOrderGstPdf" type="screen"
+              page="component://mycompany/widget/ordermgr/PurchaseOrderScreens.xml#PurchaseOrderGstPrint"/>
+
+    <!-- Error page inherited from common-controller, but declared for clarity -->
+    <view-map name="error" type="screen"
+              page="component://common/widget/CommonScreens.xml#error"/>
+
+    <!-- =========================================================
+         5. SECURITY / PERMISSIONS
+         ========================================================= -->
+    <request-map uri="PurchaseOrderGst">
+        <security https="true" auth="true"/>
+    </request-map>
+
+    <!-- =========================================================
+         6. REDIRECT / FORWARD RULES
+         ========================================================= -->
+    <request-map uri="main">
+        <security https="false" auth="false"/>
+        <response name="success" type="view" value="PurchaseOrderGstScreen"/>
+    </request-map>
+
+</site-conf>

@@ -1,0 +1,11 @@
+<entity entity-name="OrderItem" package-name="org.apache.ofbiz.order.order">
+    <field name="supplierGstin" type="String" />
+    <field name="hsnCode" type="String" />
+    <field name="igstPercent" type="BigDecimal" />
+    <field name="igstAmount" type="BigDecimal" />
+    <field name="cgstPercent" type="BigDecimal" />
+    <field name="cgstAmount" type="BigDecimal" />
+    <field name="sgstPercent" type="BigDecimal" />
+    <field name="sgstAmount" type="BigDecimal" />
+    <field name="grNo" type="String" />
+</entity>

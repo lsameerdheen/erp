@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="http://ofbiz.apache.org/dtds/services.xsd">
+
+    <service name="calculatePurchaseOrderTax"
+             engine="java"
+             location="org.mycompany.order.OrderServices"
+             invoke="calculateTax"
+             auth="true">
+        <description>Calculate IGST/CGST/SGST for a purchase order item</description>
+        <attribute name="orderId"        type="String"     mode="IN"/>
+        <attribute name="orderItemSeqId" type="String"     mode="IN"/>
+        <attribute name="taxableAmount"  type="BigDecimal" mode="IN"/>
+        <attribute name="igstAmount"     type="BigDecimal" mode="OUT"/>
+        <attribute name="cgstAmount"     type="BigDecimal" mode="OUT"/>
+        <attribute name="sgstAmount"     type="BigDecimal" mode="OUT"/>
+    </service>
+
+</services>
