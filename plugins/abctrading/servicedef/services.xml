@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/services.xsd">
+    <description>Abctrading Services</description>
+    <vendor></vendor>
+    <version>1.0</version>
+
+    <service name="calculatePurchaseOrderTax"
+             engine="java"
+             location="org.abctrading.order.OrderServices"
+             invoke="calculateTax"
+             auth="true">
+        <description>Calculate IGST/CGST/SGST for a purchase order item</description>
+        <attribute name="orderId"        type="String"     mode="IN"/>
+        <attribute name="orderItemSeqId" type="String"     mode="IN"/>
+        <attribute name="taxableAmount"  type="BigDecimal" mode="IN"/>
+        <attribute name="igstAmount"     type="BigDecimal" mode="OUT"/>
+        <attribute name="cgstAmount"     type="BigDecimal" mode="OUT"/>
+        <attribute name="sgstAmount"     type="BigDecimal" mode="OUT"/>
+    </service>
+	
+	<service name="createPurchaseOrderItemGst" engine="java"
+         location="org.abctrading.order.OrderServices" invoke="createItem" auth="true">
+		<attribute name="orderId"        type="String"     mode="IN"/>
+		<attribute name="productId"      type="String"     mode="IN"/>
+		<attribute name="itemDescription" type="String"    mode="IN"/>
+		<attribute name="supplierGstin"  type="String"     mode="IN"/>
+		<attribute name="hsnCode"        type="String"     mode="IN"/>
+		<attribute name="quantity"       type="BigDecimal" mode="IN"/>
+		<attribute name="rate"           type="BigDecimal" mode="IN"/>
+		<attribute name="igstPercent"    type="BigDecimal" mode="IN"/>
+		<attribute name="cgstPercent"    type="BigDecimal" mode="IN"/>
+		<attribute name="sgstPercent"    type="BigDecimal" mode="IN"/>
+		<attribute name="grNo"           type="String"     mode="IN"/>
+		<attribute name="interState"     type="String"     mode="IN"/>
+		<attribute name="orderItemSeqId" type="String"     mode="OUT"/>
+	</service>
+
+	<service name="updatePurchaseOrderItemGst" engine="java"
+			 location="org.abctrading.order.OrderServices" invoke="updateItem" auth="true">
+		<attribute name="orderId"        type="String"     mode="IN"/>
+		<attribute name="orderItemSeqId" type="String"     mode="IN"/>
+		<attribute name="supplierGstin"  type="String"     mode="IN"/>
+		<attribute name="hsnCode"        type="String"     mode="IN"/>
+		<attribute name="quantity"       type="BigDecimal" mode="IN"/>
+		<attribute name="rate"           type="BigDecimal" mode="IN"/>
+		<attribute name="igstPercent"    type="BigDecimal" mode="IN"/>
+		<attribute name="cgstPercent"    type="BigDecimal" mode="IN"/>
+		<attribute name="sgstPercent"    type="BigDecimal" mode="IN"/>
+		<attribute name="grNo"           type="String"     mode="IN"/>
+		<attribute name="interState"     type="String"     mode="IN"/>
+	</service>
+
+	<service name="deletePurchaseOrderItemGst" engine="java"
+			 location="org.abctrading.order.OrderServices" invoke="deleteItem" auth="true">
+		<attribute name="orderId"        type="String" mode="IN"/>
+		<attribute name="orderItemSeqId" type="String" mode="IN"/>
+	</service>
+
+	<service name="receiveAndBackOrder" engine="java"
+			 location="org.abctrading.order.OrderServices" invoke="receiveAndBackOrder" auth="true">
+		<attribute name="orderId"          type="String"     mode="IN"/>
+		<attribute name="orderItemSeqId"   type="String"     mode="IN"/>
+		<attribute name="receivedQuantity" type="BigDecimal" mode="IN"/>
+		<attribute name="grNo"             type="String"     mode="IN"/>
+		<attribute name="backOrderQuantity" type="BigDecimal" mode="OUT"/>
+		<attribute name="totalReceived"    type="BigDecimal" mode="OUT"/>
+		<attribute name="fullyReceived"    type="Boolean"    mode="OUT"/>
+	</service>
+
+	<service name="processBackOrder" engine="java"
+			 location="org.abctrading.order.OrderServices" invoke="processBackOrder" auth="true">
+		<attribute name="orderId"        type="String" mode="IN"/>
+		<attribute name="orderItemSeqId" type="String" mode="IN"/>
+		<attribute name="action"         type="String" mode="IN"/>
+	</service>
+
+	<service name="preparePurchaseOrderGstPrint" engine="java"
+			 location="org.abctrading.order.OrderServices" invoke="preparePrint" auth="true">
+		<attribute name="orderId"    type="String" mode="IN"/>
+		<attribute name="orderItems" type="List"   mode="OUT"/>
+		<attribute name="grandTotal" type="BigDecimal" mode="OUT"/>
+	</service>
+    
+</services>

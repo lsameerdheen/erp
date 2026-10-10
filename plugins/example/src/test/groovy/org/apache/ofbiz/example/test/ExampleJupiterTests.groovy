@@ -1,0 +1,244 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.ofbiz.example.test
+
+import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.service.ServiceUtil
+import org.apache.ofbiz.service.ServiceValidationException
+import org.apache.ofbiz.testtools.JunitJupiterTest
+import org.apache.ofbiz.testtools.JupiterTestHelper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Order
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.MethodSource
+
+/**
+ * Jupiter test-cases run through testdef's jupiter-test-suite element (see plugins/example/testdef/tests.xml),
+ * side-by-side with org.apache.ofbiz.example.test.ExampleOldJUnit3Tests in the same test-suite. Runs inside the full
+ * ofbiz --test container, so JupiterTestExtension injects the suite's own Delegator/LocalDispatcher.
+ * Implementing JupiterTestHelper needs no field declarations, yet Groovy's getter-as-property syntax still
+ * exposes them as bare delegator/dispatcher (backed by JupiterTestHelper's getDelegator()/getDispatcher()),
+ * so call sites read exactly like the old field-injection style - delegator.findOne(...), dispatcher.runSync(...).
+ *
+ * <p>Demonstrates a {@code @ParameterizedTest} with real CSV-driven invocations, a
+ * {@code @MethodSource}-driven table with multiple typed columns (including an expected-failure
+ * row), and a {@code @Disabled} test that shows up as a logged, reportable skip instead of
+ * silently disappearing.
+ */
+@JunitJupiterTest
+class ExampleJupiterTests implements JupiterTestHelper {
+
+    private static final String STATUS_DEFINED = 'EXST_DEFINED'
+
+    @Test
+    @Order(1)
+    void shouldCreateExample() {
+        GenericValue userLogin = delegator.findOne('UserLogin', [userLoginId: 'system'], false)
+
+        String exampleTypeId = testParams.exampleTypeId ?: 'CONTRIVED'
+        String exampleName = testParams.exampleName ?: 'Test Example - Integration'
+        String statusId = testParams.statusId ?: 'EXST_IN_DESIGN'
+
+        Map<String, Object> result = dispatcher.runSync('createExample', [
+                exampleTypeId: exampleTypeId,
+                exampleName: exampleName,
+                statusId: statusId,
+                userLogin: userLogin
+        ])
+        assert ServiceUtil.isSuccess(result)
+
+        GenericValue example = from('Example').where('exampleId', result.exampleId).queryOne()
+        assert example != null
+        Assertions.assertEquals(exampleTypeId, example.exampleTypeId)
+        Assertions.assertEquals(exampleName, example.exampleName)
+        Assertions.assertEquals(statusId, example.statusId)
+    }
+
+    @Test
+    @Order(6)
+    void shouldUpdateExample() {
+        GenericValue userLogin = delegator.findOne('UserLogin', [userLoginId: 'system'], false)
+
+        String exampleTypeId = testParams.exampleTypeId ?: 'CONTRIVED'
+        String exampleName = testParams.exampleName ?: 'Test Example - Before Update'
+        String statusId = testParams.statusId ?: 'EXST_IN_DESIGN'
+
+        Map<String, Object> createResult = dispatcher.runSync('createExample', [
+                exampleTypeId: exampleTypeId,
+                exampleName: exampleName,
+                statusId: statusId,
+                userLogin: userLogin
+        ])
+        assert ServiceUtil.isSuccess(createResult)
+        String exampleId = createResult.exampleId
+
+        String updatedExampleName = testParams.updatedExampleName ?: 'Test Example - After Update'
+        String updatedStatusId = testParams.updatedStatusId ?: STATUS_DEFINED
+
+        Map<String, Object> updateResult = dispatcher.runSync('updateExample', [
+                exampleId: exampleId,
+                exampleName: updatedExampleName,
+                statusId: updatedStatusId,
+                userLogin: userLogin
+        ])
+        assert ServiceUtil.isSuccess(updateResult)
+        assert updateResult.oldStatusId == statusId
+
+        GenericValue example = from('Example').where('exampleId', exampleId).queryOne()
+        assert example != null
+        assert example.exampleTypeId == exampleTypeId
+        assert example.exampleName == updatedExampleName
+        assert example.statusId == updatedStatusId
+    }
+
+    @Test
+    @Order(5)
+    void shouldExpirePreviousStatusOnCreateExampleStatus() {
+        GenericValue userLogin = delegator.findOne('UserLogin', [userLoginId: 'system'], false)
+
+        Map<String, Object> createResult = dispatcher.runSync('createExample', [
+                exampleTypeId: 'CONTRIVED',
+                exampleName: 'Test Example - Status Expiry',
+                statusId: 'EXST_IN_DESIGN',
+                userLogin: userLogin
+        ])
+        assert ServiceUtil.isSuccess(createResult)
+        String exampleId = createResult.exampleId
+
+        // createExample's own "return" ECA already calls createExampleStatus once, seeding the
+        // first ExampleStatus row -- so the explicit call below is the second one, and it's this
+        // conversion's ifExists()/first()/orderBy() that must find and expire that ECA-created row.
+        List<GenericValue> afterCreate = from('ExampleStatus').where('exampleId', exampleId).queryList()
+        assert afterCreate.size() == 1
+        assert afterCreate[0].statusEndDate == null
+
+        Map<String, Object> secondStatusResult = dispatcher.runSync('createExampleStatus', [
+                exampleId: exampleId,
+                statusId: STATUS_DEFINED,
+                userLogin: userLogin
+        ])
+        assert ServiceUtil.isSuccess(secondStatusResult)
+
+        List<GenericValue> afterSecond = from('ExampleStatus').where('exampleId', exampleId)
+                .orderBy('statusDate').queryList()
+        assert afterSecond.size() == 2
+        assert afterSecond[0].statusEndDate != null
+        assert afterSecond[1].statusEndDate == null
+        assert afterSecond[1].statusId == STATUS_DEFINED
+    }
+
+    @ParameterizedTest(name = '[{index}] exampleTypeId={0}')
+    @Order(2)
+    @CsvSource([
+            'CONTRIVED',
+            'INSPIRED',
+            'REAL_WORLD',
+            'MADE_UP'
+    ])
+    void shouldCreateExampleAcrossTypes(String exampleTypeId) {
+        GenericValue userLogin = delegator.findOne('UserLogin', [userLoginId: 'system'], false)
+        // exampleTypeId is deliberately left CSV-driven, not testParams-driven - that's the one
+        // value this method exists to vary across invocations. statusId isn't varied by the CSV
+        // source, so it's the one field here that can take a caller override the same way
+        // shouldCreateExample does.
+        String statusId = testParams.statusId ?: 'EXST_IN_DESIGN'
+        Map<String, Object> result = dispatcher.runSync('createExample', [
+                exampleTypeId: exampleTypeId,
+                exampleName: 'Test Example - ' + exampleTypeId,
+                statusId: statusId,
+                userLogin: userLogin
+        ])
+        assert ServiceUtil.isSuccess(result)
+    }
+
+    // This method will not be executed and will remain disabled since it is annotated with @Disabled.
+    @Disabled('OFBIZ-XXXXX: sample only - demonstrates a documented, reportable skip; not a real defect')
+    @Test
+    @Order(3)
+    void shouldDeleteExample() {
+        GenericValue userLogin = delegator.findOne('UserLogin', [userLoginId: 'system'], false)
+
+        String exampleTypeId = testParams.exampleTypeId ?: 'CONTRIVED'
+        String exampleName = testParams.exampleName ?: 'Test Example - Before Delete'
+        String statusId = testParams.statusId ?: 'EXST_IN_DESIGN'
+
+        Map<String, Object> createResult = dispatcher.runSync('createExample', [
+                exampleTypeId: exampleTypeId,
+                exampleName: exampleName,
+                statusId: statusId,
+                userLogin: userLogin
+        ])
+        assert ServiceUtil.isSuccess(createResult)
+        String exampleId = createResult.exampleId
+
+        Map<String, Object> deleteResult = dispatcher.runSync('deleteExample', [
+                exampleId: exampleId,
+                userLogin: userLogin
+        ])
+        assert ServiceUtil.isSuccess(deleteResult)
+
+        GenericValue example = from('Example').where('exampleId', exampleId).queryOne()
+        assert example == null
+    }
+
+    @ParameterizedTest(name = '[{index}] {0}')
+    @Order(4)
+    @MethodSource('exampleCreationCases')
+    void shouldCreateExampleAcrossTypesAndStatuses(String label, String exampleTypeId, String statusId,
+            String exampleName, boolean expectSuccess) {
+        GenericValue userLogin = delegator.findOne('UserLogin', [userLoginId: 'system'], false)
+        Map<String, Object> serviceCtx = [
+                exampleTypeId: exampleTypeId,
+                statusId: statusId,
+                exampleName: exampleName,
+                userLogin: userLogin
+        ]
+        if (expectSuccess) {
+            Map<String, Object> result = dispatcher.runSync('createExample', serviceCtx)
+            assert ServiceUtil.isSuccess(result) : label
+            GenericValue example = from('Example').where('exampleId', result.exampleId).queryOne()
+            assert example != null
+            assert example.exampleTypeId == exampleTypeId
+            assert example.statusId == statusId
+        } else {
+            // A required attribute missing (exampleTypeId/exampleName) fails validation before the
+            // service body runs, so runSync throws instead of returning an error result map.
+            Assertions.assertThrows(ServiceValidationException) {
+                dispatcher.runSync('createExample', serviceCtx)
+            }
+        }
+    }
+
+    @SuppressWarnings('UnusedPrivateMethod')
+    private static List<Arguments> exampleCreationCases() {
+        [
+                Arguments.of('real-world-in-design', 'REAL_WORLD', 'EXST_IN_DESIGN', 'Test Example - Real World', true),
+                Arguments.of('made-up-defined', 'MADE_UP', STATUS_DEFINED, 'Test Example - Made Up', true),
+                Arguments.of('contrived-approved', 'CONTRIVED', 'EXST_APPROVED', 'Test Example - Contrived', true),
+                Arguments.of('inspired-implemented', 'INSPIRED', 'EXST_IMPLEMENTED', 'Test Example - Inspired', true),
+                Arguments.of('missing-example-type-fails', null, 'EXST_IN_DESIGN', 'Test Example - Missing Type', false),
+                Arguments.of('missing-example-name-fails', 'REAL_WORLD', 'EXST_IN_DESIGN', null, false),
+        ]
+    }
+
+}

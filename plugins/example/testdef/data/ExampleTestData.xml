@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<entity-engine-xml>
+    <SecurityGroup groupId="FULLADMIN" description="Full Admin Group"/>
+    <SecurityPermission description="ALL operations in the Example Management Screens." permissionId="EXAMPLE_ADMIN"/>
+    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FULLADMIN" permissionId="EXAMPLE_ADMIN"/>
+    <UserLogin userLoginId="system" enabled="N" isSystem="Y"/>
+    <UserLoginSecurityGroup groupId="FULLADMIN" userLoginId="system" fromDate="2001-05-13 12:00:00.0"/>
+
+    <StatusType description="Example" statusTypeId="EXAMPLE_STATUS" hasTable="N"/>
+    <StatusItem description="In Design" sequenceId="01" statusCode="IN_DESIGN" statusId="EXST_IN_DESIGN" statusTypeId="EXAMPLE_STATUS"/>
+    <ExampleType exampleTypeId="CONTRIVED" description="Contrived Example Type"/>
+    <Example exampleId="TestExampleUpdate" exampleTypeId="CONTRIVED" statusId="EXST_IN_DESIGN" exampleName="Test Example for Update"/>
+    <Example exampleId="TestExampleDelete" exampleTypeId="CONTRIVED" statusId="EXST_IN_DESIGN" exampleName="Test Example for Delete"/>
+
+    <!-- Fixtures for testGetAssociatedExampleFeaturesFiltersByDate (OFBIZ-11724) -->
+    <Example exampleId="EXTEST01" exampleName="Multi param dependent drop-down test" exampleTypeId="CONTRIVED" statusId="EXST_IN_DESIGN"/>
+    <ExampleFeature exampleFeatureId="EXFTTEST01" featureSourceEnumId="EXFTSRC_CUSTOMER" description="Test feature one"/>
+    <ExampleFeature exampleFeatureId="EXFTTEST02" featureSourceEnumId="EXFTSRC_CUSTOMER" description="Test feature two"/>
+    <ExampleFeatureAppl exampleId="EXTEST01" exampleFeatureId="EXFTTEST01" fromDate="2010-01-01 00:00:00" thruDate="2012-01-01 00:00:00" exampleFeatureApplTypeId="REQUIRED" sequenceNum="1"/>
+    <ExampleFeatureAppl exampleId="EXTEST01" exampleFeatureId="EXFTTEST02" fromDate="2012-01-01 00:00:00" thruDate="2014-01-01 00:00:00" exampleFeatureApplTypeId="DESIRED" sequenceNum="2"/>
+</entity-engine-xml>

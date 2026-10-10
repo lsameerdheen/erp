@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screens xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="http://ofbiz.apache.org/dtds/widget-screen.xsd">
+
+    <screen name="PurchaseOrderGstScreen">
+        <section>
+			<actions>
+                <!-- Sets the required menu location expected by OrderViewScreens decorators -->
+                <set field="MainActionMenu" value="${parameters.mainMenuLocation}" global="true"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="CommonOrderViewDecorator"
+                                  location="component://order/widget/ordermgr/OrderViewScreens.xml">
+                    <decorator-section name="body">
+                        <include-form name="PurchaseOrderItemForm"
+                                      location="component://abctrading/widget/ordermgr/PurchaseOrderForms.xml"/>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+</screens>
